@@ -8,10 +8,6 @@ ICRA_PM<- filtered_south_colony_data
 ICRA_den<-read.csv("data/south_only_2025_ICRA_density_TUT.csv")
 load("data/eds_output.Rdata")
 
-#ICRA_den<- read.csv("C:/Users/kira.turnham/Documents/GitHub/ICRA/data/south_only_2025_ICRA_density_TUT.csv")
-#ICRA_PM<- read.csv("C:/Users/kira.turnham/Documents/GitHub/ICRA/data/south_only_ICRA_Colony_level_data.csv")
-
-
 #rename column name
 eds <- eds %>%
   dplyr::rename(SITE = site)
@@ -19,7 +15,7 @@ eds <- eds %>%
 #save the colnames as a file for ease in viewing variable names
 column_names <- colnames(eds)
 column_names_df <- data.frame(column_names)
-write.csv(column_names_df, "EDS_column_names.csv", row.names = FALSE)
+write.csv(column_names_df, "data/EDS_column_names.csv", row.names = FALSE)
 
 #subset variables you want to use:
 sub<- eds %>%
