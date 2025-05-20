@@ -107,7 +107,7 @@ ggplot() +
   geom_sf(data = tutuila_shape, fill = "gray90", color = "black") +
   geom_sf(data = sites_sf_den, aes(color = log_mean_den, shape = shape_code), 
           size = 2, alpha = 0.7) +
-  scale_color_viridis_d(option = "C") +
+  scale_color_viridis(option = "C") +
   #scale_fill_manual(values = custom_colors) +
   scale_shape_manual(
     values = c("2015" = 16, "2018" = 17, "2023" = 15, "2025" = 18, "Zero" = 4)

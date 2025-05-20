@@ -5,7 +5,8 @@ library(rstatix)
 library(ggsignif)
 library(patchwork)
 library(ggtext)
-load("Github/ICRA/data/SITE_DEN.RData")
+library(viridis)
+#load("Github/ICRA/data/SITE_DEN.RData")
 
 filtered_density<-read.csv("data/south_only_2025_ICRA_density_TUT.csv")
 
@@ -16,9 +17,7 @@ print(vir_colors)
 custom_colors <- vir_colors
 custom_colors[4] <- "gold"  # DAA520 goldenrod 
 
-#change
-
-#how many corals were counted density 
+#how many sites were counted for density 
 summary_by_year_and_total_all <- SITE_DEN %>%
   group_by(YEAR) %>%
   summarise(
@@ -29,11 +28,11 @@ summary_by_year_and_total_all <- SITE_DEN %>%
   ) 
 
 #YEAR  non_na_count na_count zeros
-#1 2015            57        0    42
-#2 2018            17        0    15
-#3 2023            41        0    29
-#4 2025            63        0    30
-#how many corals were counted density in south only
+#1 2015            57        0    42 #15 where density >0
+#2 2018            17        0    15 #only @ 2 sites in 2018 where density was > 0
+#3 2023            41        0    29 #11 sites where density >0
+#4 2025            63        0    30 #33 sites where density >0
+#how many sites were counted density in south only
 summary_by_year_and_total <- filtered_density %>%
   group_by(YEAR) %>%
   summarise(
@@ -43,15 +42,15 @@ summary_by_year_and_total <- filtered_density %>%
     .groups = "drop"  
   ) 
 #YEAR non_na_count na_count zeros
-#1  2015           35        0    23
-#2  2018           10        0     8
-#3  2023           29        0    18
-#4  2025           42        0    11
+#1  2015           35        0    23 #12 sites density >0
+#2  2018           10        0     8 #only @ 2 sites in 2018 where density was > 0
+#3  2023           29        0    18 #11 sites density >0
+#4  2025           42        0    11 #31 
 
 #Exploring density data by survey method including at absent areas
 #test if size distribution is normal
 shapiro.test(SITE_DEN$DENSITY)
-#Non-normal, W = 0.31699, p-value < 2.2e-16
+#Not normal, W = 0.31699, p-value < 2.2e-16
 shapiro.test(filtered_density$DENSITY)
 #W = 0.40459, p-value < 2.2e-16
 
@@ -69,6 +68,7 @@ dunn_results <- SITE_DEN %>%
 
 dunn_results_filtered <- filtered_density %>%
   dunn_test(DENSITY ~ YEAR, p.adjust.method = "bonferroni")
+#difference between 2015 and 2025
 
 # Log-transform ICRA densities (log(x + 1))
 filtered_density <- filtered_density %>%
@@ -85,7 +85,7 @@ shapiro.test(filtered_density$Sqrt_ICRA_density)
 
 #visualize distributions 
 
-# Create density plots
+# density plots
 p1 <- ggplot(filtered_density, aes(x = DENSITY)) +
   geom_density(fill = "blue", alpha = 0.5) +
   labs(title = "Original Data", x = "ICRA_raw_density")
@@ -98,7 +98,7 @@ p3 <- ggplot(filtered_density, aes(x = Sqrt_ICRA_density)) +
   geom_density(fill = "green", alpha = 0.5) +
   labs(title = "Square Root Transformed", x = "Sqrt_ICRA_density")
 
-# Create Q-Q plots
+# qq plots
 qq1 <- ggplot(filtered_density, aes(sample = DENSITY)) +
   stat_qq() + stat_qq_line() + labs(title = "QQ Plot: Original Data")
 
@@ -108,11 +108,11 @@ qq2 <- ggplot(filtered_density, aes(sample = Log_ICRA_density)) +
 qq3 <- ggplot(filtered_density, aes(sample = Sqrt_ICRA_density)) +
   stat_qq() + stat_qq_line() + labs(title = "QQ Plot: Square Root Transformed")
 
-# Arrange plots in a grid
+# save these in a grid
 (p1 | p2 | p3) / (qq1 | qq2 | qq3)
-ggsave("south only density data transformation distributions.png")
+ggsave("plots/south only density data transformation distributions.png")
 
-# Ridge plot of density
+# ridge plot of density
 ggplot(filtered_density, aes(x = Sqrt_ICRA_density, y = as.factor(YEAR), fill = as.factor(YEAR))) +
   geom_density_ridges(alpha = 0.9) +
   labs(x = "Count (Sqrt transformed)", y = "Year", title = "Density Distribution of Counts by Year") +
@@ -120,7 +120,7 @@ ggplot(filtered_density, aes(x = Sqrt_ICRA_density, y = as.factor(YEAR), fill = 
   theme(legend.position = "bottom") +
   scale_fill_manual(values = custom_colors)
 
-# Reshape the data to long format for column plot, and log transform do deal with zeros
+#  data to long format for bar plot and log transform do deal with zeros
 mean_sd_den_per_year_site <- filtered_density %>%
   group_by(YEAR) %>%
   summarise(
@@ -129,7 +129,7 @@ mean_sd_den_per_year_site <- filtered_density %>%
     .groups = "drop"
   )
 
-# Column plot
+# make a bar plot
 ggplot(mean_sd_den_per_year_site, aes(x = as.factor(YEAR), y = mean_den, fill=as.factor(YEAR))) +
   geom_bar(stat = "identity", width = 0.5) +
   geom_errorbar(aes(ymin = mean_den - sd_density, ymax = mean_den + sd_density), 
@@ -138,31 +138,75 @@ ggplot(mean_sd_den_per_year_site, aes(x = as.factor(YEAR), y = mean_den, fill=as
   theme_minimal()+
   scale_fill_manual(values = custom_colors)
 
-# Should bootstrap this data
+# Should bootstrap this data to deal with how different the site # were per year
+
 library(dplyr)
 library(boot)
+library(lme4)
+library(broom.mixed)
+#bootstrap function to estimate uncertainty for mean density per year, based on resampling
 
-# Define a bootstrap function.to estimate uncertainty for mean density per year, based on resampling
+# since 2018 had lowest numbner of sites sampled, bootstrap others to 10. 
 
-
-boot_mean <- function(data, indices) {
-  d <- data[indices, ] # Resample rows with replacement using the boot package
-  tapply(d$DENSITY, d$YEAR, mean, na.rm = TRUE) # Compute mean for each year
-}
+#THIS ISN"T WORKING
+n_boot <- 1000
+target_n_sites <- 10  # 2018 only had 10 sites on south shore. 
 
 set.seed(123)
-boot_out <- boot(filtered_density, statistic = boot_mean, R = 1000)
+boot_results <- vector("list", n_boot)
 
-# Convert to dataframe with CI
-boot_means <- data.frame(
-  YEAR = sort(unique(filtered_density$YEAR)),
-  mean = colMeans(boot_out$t),
-  lower = apply(boot_out$t, 2, quantile, 0.025),
-  upper = apply(boot_out$t, 2, quantile, 0.975)
-)
+for (i in 1:n_boot) {
+  
+  # List of bootstrapped site names for all years except 2018
+  sampled_sites <- filtered_density %>%
+    filter(YEAR != 2018) %>% #not bootstrapping 2018
+    distinct(YEAR, SITE) %>%
+    group_by(YEAR) %>%
+    slice_sample(n = target_n_sites, replace = FALSE) %>%
+    ungroup()
+  
+  # add 2018 sites without resampling
+  sites_2018 <- filtered_density %>%
+    filter(YEAR == 2018) %>%
+    distinct(YEAR, SITE)
+  
+  sampled_sites_all <- bind_rows(sampled_sites, sites_2018)
+  
+  # Keep only rows from sampled sites
+  boot_data <- filtered_density %>%
+    semi_join(sampled_sites_all, by = c("YEAR", "SITE"))
+  
+  # Fit a linear mixed model: random intercept for Site
+  model <- lmer(DENSITY ~ factor(YEAR) + (1 | SITE), data = boot_data)
+  
+  # Store model output
+  boot_results[[i]] <- tidy(model, effects = "fixed")  # Only fixed effects
+}
 
-# Plot
-ggplot(boot_means, aes(x = as.factor(YEAR), y = mean, fill = as.factor(YEAR))) +
+# Combine and summarize results
+boot_df <- bind_rows(boot_results, .id = "bootstrap")
+
+
+
+# Combine and summarize
+boot_df <- bind_rows(boot_results, .id = "bootstrap")
+
+boot_summary <- boot_df %>%
+  group_by(term) %>%
+  summarise(
+    estimate_mean = mean(estimate),
+    estimate_sd = sd(estimate),
+    lower_CI = quantile(estimate, 0.025),
+    upper_CI = quantile(estimate, 0.975),
+    .groups = "drop"
+  )
+
+boot_summary
+
+
+
+# bar plot
+ggplot(boot_summary, aes(x = as.factor(YEAR), y = mean, fill = as.factor(YEAR))) +
   geom_col() +
   geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +
   labs(x = "Year", y = "Mean Density (bootstrapped CI)") +
@@ -170,7 +214,7 @@ ggplot(boot_means, aes(x = as.factor(YEAR), y = mean, fill = as.factor(YEAR))) +
   scale_fill_manual(values = custom_colors)
 
 
-#with log transformed data
+# do the same thing but with log transformed data
 boot_mean_log <- function(data, indices) {
   d <- data[indices, ]
   d$log_density <- log1p(d$DENSITY)

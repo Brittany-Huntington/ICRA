@@ -6,27 +6,14 @@ library(broom)
 library(purrr)
 
 load("data/COLONY_SIZE_PM.RData")
+SOUTH_COLONY_SIZE_PM<-read.csv("data/south_only_ICRA_Colony_level_data.csv")
 
-#options for colors ?
-year_colors <- c(
-  "2015" = "#4b006c",
-  "2018" = "#84186d",
-  "2023" = "#d71b33",
-  "2025" = "#f2a47c"
-)
-year_colors <- c(
-  "2015" = "#000004",  # near black
-  "2018" = "#420a68",  # purple
-  "2023" = "#932667",  # red-magenta
-  "2025" = "#f1605d"   # red-orange
-)
+# set colors
+vir_colors <- viridis(n = 4, option = "C")
+print(vir_colors)
 
-year_colors <- c(
-  "2015" = "#6c117b",   # deep violet (not pure black)
-  "2018" = "#932667",   # rich purple
-  "2023" = "#f87d13",   # magenta-pink
-  "2025" = "#f5c527"    # strong orange (warm but soft, readable)
-)
+custom_colors <- vir_colors
+custom_colors[4] <- "gold"  # DAA520 goldenrod 
 
 #double check numbers for PM data (remove NA, but keep zeros)
 COLONY_SIZE_PM %>%
@@ -56,7 +43,7 @@ dat_sub <- dat_sub %>%
 
 # Set parameters
 n_boot <- 1000
-target_n_sites <- 12  # to match 2023 effort
+target_n_sites <- 10  # to match 2018 effort
 
 set.seed(123)  # for reproducibility
 

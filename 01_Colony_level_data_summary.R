@@ -7,6 +7,13 @@ library(readxl)
 load("data/COLONY_SIZE_PM.RData")
 SOUTH_COLONY_SIZE_PM<-read.csv("data/south_only_ICRA_Colony_level_data.csv")
 
+# set colors
+vir_colors <- viridis(n = 4, option = "C")
+print(vir_colors)
+
+custom_colors <- vir_colors
+custom_colors[4] <- "gold"  # DAA520 goldenrod 
+
 #Data summaries
 
 #how many corals were sized (this excludes Feb 20205 data where size wasn't taken)
