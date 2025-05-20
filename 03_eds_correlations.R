@@ -1,3 +1,5 @@
+#test which variables from eds output are correlated. Explore relationship w/ PM and environmental history.
+
 rm(list = ls())
 library(tidyverse)
 library(corrplot)   
@@ -64,9 +66,21 @@ M <- cor(sub_numeric_matrix, use = "pairwise.complete.obs") #pearsons
 corrplot(M, tl.col="black", tl.cex = 0.5, type = 'upper') #correlation plot showing the correlation coefficient
 res1 <- cor.mtest(sub_numeric_matrix, conf.level = 0.95)
 #combining correlogram with the significance test
+#save
+png("plots/corrplot_output.png", width = 800, height = 800)
+par(mar = c(10, 4, 4, 2)) 
+# Generate the correlation plot
 corrplot(M, p.mat = res1$p, 
-         #insig = "p-value", # if you want to print nonsig pvalues 
-         sig.level = 0.05, order = 'hclust', addrect = 2, tl.srt=45, tl.cex = 0.3, pch.cex = 0.5, type = 'upper')
+         sig.level = 0.05, 
+         #insig = "p-value", # if you want to print nonsig pvalues
+         order = 'hclust', 
+         addrect = 2, 
+         tl.srt = 45, 
+         tl.cex = 0.6,  
+         pch.cex = 0.8, 
+         type = 'upper')
+
+dev.off()
 
 ##########################################################################################
 #now, visualize all variables that are significant;y correlated and remove from analysis
