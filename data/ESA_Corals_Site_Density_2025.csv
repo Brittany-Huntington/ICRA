@@ -1,4 +1,4 @@
-﻿Date,Site,Max_depth_ft,Max_depth_m,Lat,Long,ICRA_count,Transect_area,Survey_area,ICRA_density
+﻿Date,Site,Max_depth_ft,Max_depth_m,Lat,Long,COL_COUNT,Transect_area,Survey_area,ICRA_density
 2/7/2025,TUT-210,39,11.89,-14.301899,-170.679903,10,60,120,0.083333333
 2/7/2025,TUT-211,45,13.72,-14.360358,-170.748776,1,60,120,0.008333333
 2/7/2025,TUT-212,51,15.54,-14.338095,-170.793296,40,60,180,0.222222222
