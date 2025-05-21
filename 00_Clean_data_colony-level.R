@@ -21,11 +21,21 @@ ncrmp <- read.csv("data/CoralBelt_Adults_raw_CLEANED_2023.csv")%>% mutate_if(is.
   filter(!MORPHOLOGY %in% c("Branching", "Columnar")) %>%
   mutate(PER_DEAD = OLDDEAD + RDEXTENT1 + RDEXTENT2,
          Area_surveyed_m2 = 10) %>%
-  filter(COLONYLENGTH > 4.9)%>% #only use colonies >5
+ # filter(as.numeric(COLONYLENGTH) > 4.9) %>% #only use colonies >5
 rename(YEAR = OBS_YEAR)%>%
   droplevels()
 
-  
+#confirm no corals below 5cm are included. And note largest corals measured by NCRMP 
+ncrmp %>%
+  group_by(YEAR) %>%
+  summarise(
+    min_size = min(COLONYLENGTH, na.rm = TRUE),
+    max_size = max(COLONYLENGTH, na.rm = TRUE)
+  )
+#   YEAR min_size max_size
+#  2015        5       73
+#  2018        5       70
+#  2023        5      116
 
 #Calculate quintiles of pre-bleaching year data to assign size classes 
 q<- data.frame(quantile(ncrmp$COLONYLENGTH, probs =  c(20,80)/100, na.rm = FALSE, names = TRUE, type = 9, digits = 4))
@@ -34,7 +44,7 @@ q<- data.frame(quantile(ncrmp$COLONYLENGTH, probs =  c(20,80)/100, na.rm = FALSE
 #add quintiles to dataframe in new column TAIL_BINS
 ncrmp$TAIL_BINS=cut(ncrmp$COLONYLENGTH,c(-Inf,q[1,1],q[2,1],Inf),labels=c('Q20','QMED','Q80'))
 
-write.csv(ncrmp, "NCRMP_COlony_level_TUT_filtered.csv")
+#write.csv(ncrmp, "NCRMP_COlony_level_TUT_filtered.csv")
 
 #make sure columns are read as correct format
 ncrmp$YEAR <- as.factor(ncrmp$YEAR)
@@ -58,28 +68,13 @@ ICRA_2025 <- read.csv("data/2025_ICRA_colony_level_TUT.csv") %>%
          SITE = Site,
          DATE_=Date)
 
-ICRA_2025 <- ICRA_2025 %>%
-  filter(COLONYLENGTH > 4.9 | is.na(COLONYLENGTH))
-
+#apply quintiles from 2015 calculations
 ICRA_2025$TAIL_BINS <- cut(
   ICRA_2025$COLONYLENGTH, 
   breaks = c(-Inf, 12, 40, Inf), 
   labels = c('Q20', 'QMED', 'Q80'))
 
 esa <- select(ICRA_2025, DATE_, COLONYLENGTH, MAX_DEPTH_M, Area_surveyed_m2, SITE, PER_DEAD, LATITUDE, LONGITUDE, YEAR, TAIL_BINS)
-
-
-#Make dataframe based on corals measured w/i first 10mx2m of 2025 transects (to compare methods)
-ICRA_2025 <- ICRA_2025 %>%
-  mutate(First10m_YN = as.numeric(First10m_YN))
-
-ICRA_20m <- ICRA_2025 %>%
-  filter(First10m_YN == 1)
-
-#add column for survey area
-ICRA_20m$Area_surveyed_m2<- 20
-ICRA_sub <- select(ICRA_20m, DATE_, COLONYLENGTH, Area_surveyed_m2, MAX_DEPTH_M, SITE, PER_DEAD, LATITUDE, LONGITUDE, YEAR, TAIL_BINS)
-ICRA_sub$YEAR <- ordered(ICRA_sub$YEAR, levels = c("2015", "2018", "2023", "2025"))
 
 #merge ncmrp and esa data    
 colnames(esa)
@@ -93,9 +88,56 @@ COLONY_SIZE_PM <- rbind(
   )
 COLONY_SIZE_PM$YEAR <- ordered(COLONY_SIZE_PM$YEAR, levels = c("2015", "2018", "2023", "2025"))
 
-write.csv(COLONY_SIZE_PM, "data/all_ICRA_Colony_level_data.csv", row.names = FALSE)
 
-save(COLONY_SIZE_PM, file = "data/COLONY_SIZE_PM.RData")
+#manually removed all ICRA data from north side of island in arcGIS. both are plotted in map script for transparency and visualization.
+load("~/GitHub/ICRA/data/south_only_ICRA_Colony_level_data.csv")
+
+#identify corals outside the size range (<5cm or >116cm, to account for differences in survey methods in 2025 vs. ncrmp) (to update density dataset)
+removed_data <- SOUTH_COLONY_SIZE_PM %>% 
+  filter(!(as.numeric(COLONYLENGTH) > 4.9 )) %>%
+  select(SITE, COLONYLENGTH)
+
+removed_summary <- SOUTH_COLONY_SIZE_PM %>% 
+  filter(COLONYLENGTH < 4.9 | COLONYLENGTH > 116.1) %>%
+  group_by(SITE) %>%
+  summarise(
+    removed_count = n(),
+    min_size = min(COLONYLENGTH, na.rm = TRUE),
+    max_size = max(COLONYLENGTH, na.rm = TRUE)
+  ) %>%
+  arrange(desc(removed_count))
+
+# View the summary
+print(removed_summary)
+save(removed_summary, file = "data/colonies_removed_due_to_size.RData")
+
+
+#remove those corals from dataset
+SOUTH_COLONY_SIZE_PM_filtered <- SOUTH_COLONY_SIZE_PM %>%
+  filter(COLONYLENGTH >= 4.9 & COLONYLENGTH <= 116.1)
+
+
+write.csv(SOUTH_COLONY_SIZE_PM_filtered, "data/south_ICRA_Colony_level_data_filtered.csv", row.names = FALSE)
+
+
+
+
+#save(COLONY_SIZE_PM, file = "data/COLONY_SIZE_PM.RData")
+
+
+#########################################################################################################
+#Make dataframe based on corals measured w/i first 10mx2m of 2025 transects (to compare methods)
+ICRA_2025 <- ICRA_2025 %>%
+  mutate(First10m_YN = as.numeric(First10m_YN))
+
+ICRA_20m <- ICRA_2025 %>%
+  filter(First10m_YN == 1)
+
+#add column for survey area
+ICRA_20m$Area_surveyed_m2<- 20
+ICRA_sub <- select(ICRA_20m, DATE_, COLONYLENGTH, Area_surveyed_m2, MAX_DEPTH_M, SITE, PER_DEAD, LATITUDE, LONGITUDE, YEAR, TAIL_BINS)
+ICRA_sub$YEAR <- ordered(ICRA_sub$YEAR, levels = c("2015", "2018", "2023", "2025"))
+
 
 #combine the 20m data and store as seperate dataframe to compare survey methods
 colnames(ICRA_sub)

@@ -1,3 +1,6 @@
+#Data summary and visualization of site level (density) I. crateriformis. Comparing south side filtered density w/ that including north.
+
+rm(list=ls())
 library(ggridges)
 library(ggplot2)
 library(tidyr)
@@ -6,19 +9,18 @@ library(ggsignif)
 library(patchwork)
 library(ggtext)
 library(viridis)
-#load("Github/ICRA/data/SITE_DEN.RData")
 
-filtered_density<-read.csv("data/south_only_2025_ICRA_density_TUT.csv")
+load("data/ALL_COLONY_DENSITY.RData")
+load("data/SOUTH_COLONY_DENSITY_filtered.RData")
 
 # set colors
 vir_colors <- viridis(n = 4, option = "C")
 print(vir_colors)
-
 custom_colors <- vir_colors
 custom_colors[4] <- "gold"  # DAA520 goldenrod 
 
 #how many sites were counted for density 
-summary_by_year_and_total_all <- SITE_DEN %>%
+summary_by_year_and_total_all <- ALL_COLONY_DENSITY %>%
   group_by(YEAR) %>%
   summarise(
     non_na_count = sum(!is.na(DENSITY)),
@@ -32,58 +34,62 @@ summary_by_year_and_total_all <- SITE_DEN %>%
 #2 2018            17        0    15 #only @ 2 sites in 2018 where density was > 0
 #3 2023            41        0    29 #11 sites where density >0
 #4 2025            63        0    30 #33 sites where density >0
-#how many sites were counted density in south only
-summary_by_year_and_total <- filtered_density %>%
+
+#how many sites were counted density in south only, filtering out large colonies
+summary_by_year_and_total <- SOUTH_COLONY_DENSITY_filtered %>%
   group_by(YEAR) %>%
   summarise(
-    non_na_count = sum(!is.na(DENSITY)),
-    na_count = sum(is.na(DENSITY)),
-    zeros = sum(DENSITY == 0),
+    non_na_count = sum(!is.na(adjusted_density)),
+    na_count = sum(is.na(adjusted_density)),
+    zeros = sum(adjusted_density == 0),
     .groups = "drop"  
   ) 
 #YEAR non_na_count na_count zeros
 #1  2015           35        0    23 #12 sites density >0
-#2  2018           10        0     8 #only @ 2 sites in 2018 where density was > 0
+#2  2018           10        0     8 #only 2 sites in 2018 where density was > 0
 #3  2023           29        0    18 #11 sites density >0
 #4  2025           42        0    11 #31 
 
 #Exploring density data by survey method including at absent areas
 #test if size distribution is normal
-shapiro.test(SITE_DEN$DENSITY)
+shapiro.test(ALL_COLONY_DENSITY$DENSITY)
 #Not normal, W = 0.31699, p-value < 2.2e-16
-shapiro.test(filtered_density$DENSITY)
-#W = 0.40459, p-value < 2.2e-16
+shapiro.test(SOUTH_COLONY_DENSITY_filtered$adjusted_density)
+#W = 0.40396, p-value < 2.2e-16
 
 #run Kruskal test 
-kw_results <- SITE_DEN %>%
+kw_results <- ALL_COLONY_DENSITY %>%
   kruskal_test(DENSITY ~ YEAR)
 #DENSITY   178      9.94     3 0.0191 Kruskal-Wallis
 
-kw_results_filtered <- filtered_density %>%
-  kruskal_test(DENSITY ~ YEAR)
+kw_results_filtered <- SOUTH_COLONY_DENSITY_filtered %>%
+  kruskal_test(adjusted_density ~ YEAR)
 #DENSITY   116      9.63     3 0.022 Kruskal-Wallis
 
-dunn_results <- SITE_DEN %>%
+dunn_results <- ALL_COLONY_DENSITY %>%
   dunn_test(DENSITY ~ YEAR, p.adjust.method = "bonferroni")
+#ns
+dunn_results_filtered <- SOUTH_COLONY_DENSITY_filtered %>%
+  dunn_test(adjusted_density ~ YEAR, p.adjust.method = "bonferroni")
+#difference between 2015 and 2025(p=0.00741, padj = 0.0445)
 
-dunn_results_filtered <- filtered_density %>%
-  dunn_test(DENSITY ~ YEAR, p.adjust.method = "bonferroni")
-#difference between 2015 and 2025
+#Due to different site numbers in 2025, should bootstrap all data besides 2018 to 10 (# sites in 2018, the lowest).
 
-# Log-transform ICRA densities (log(x + 1))
-filtered_density <- filtered_density %>%
-  mutate(Log_ICRA_density = log1p(DENSITY))%>%  # log1p(x) is equivalent to log(x + 1)
-  mutate(Sqrt_ICRA_density = sqrt(DENSITY)) #sruare root transform as it handles zeros better
-
+#########################################
+#visualize log-transformed distributions#
+#########################################
 
 # **Exploring transformed density data by survey method**
-# Test if log-transformed data is normal
-shapiro.test(filtered_density$DENSITY)
-shapiro.test(filtered_density$Log_ICRA_density)
-shapiro.test(filtered_density$Sqrt_ICRA_density)
-#none of the data are normal after transformation
+# Log-transform ICRA densities (log(x + 1))
+SOUTH_COLONY_DENSITY_filtered <- SOUTH_COLONY_DENSITY_filtered %>%
+  mutate(Log_ICRA_density = log1p(adjusted_density))%>%  # log1p(x) is equivalent to log(x + 1)
+  mutate(Sqrt_ICRA_density = sqrt(adjusted_density)) #sruare root transform as it handles zeros better
 
-#visualize distributions 
+# Test if log-transformed data is normal
+shapiro.test(SOUTH_COLONY_DENSITY_filtered$adjusted_density)
+shapiro.test(SOUTH_COLONY_DENSITY_filtered$Log_ICRA_density)
+shapiro.test(SOUTH_COLONY_DENSITY_filtered$Sqrt_ICRA_density)
+#none of the data are normal after transformation
 
 # density plots
 p1 <- ggplot(filtered_density, aes(x = DENSITY)) +
@@ -137,20 +143,68 @@ ggplot(mean_sd_den_per_year_site, aes(x = as.factor(YEAR), y = mean_den, fill=as
   labs(x = "Year", y = "Mean Density ± SD", title = "Average Density per Year with SD") +
   theme_minimal()+
   scale_fill_manual(values = custom_colors)
-
-# Should bootstrap this data to deal with how different the site # were per year
+###########################################################################
+# bootstrap this data to deal with how different the site #s were per year#
+###########################################################################
 
 library(dplyr)
 library(boot)
 library(lme4)
 library(broom.mixed)
+library(tidyverse)
 #bootstrap function to estimate uncertainty for mean density per year, based on resampling
 
 # since 2018 had lowest numbner of sites sampled, bootstrap others to 10. 
 
+
+dat_sub <- SOUTH_COLONY_DENSITY_filtered %>%
+  filter(!is.na(adjusted_density)) %>%
+  mutate(YEAR = factor(YEAR, ordered = FALSE)) %>%
+  mutate(YEAR = relevel(YEAR, ref = "2015")) %>%
+  
+run_bootstrap <- function(n_boot = 100, target_n_sites = 10, set.seed(123)) {
+  boot_results <- vector("list", n_boot)
+  
+  for (i in 1:n_boot) {
+    # Sample sites for 2025
+    sampled_sites <- dat_sub %>%
+      filter(YEAR != 2018) %>%
+      distinct(SITE) %>%
+      slice_sample(n = target_n_sites) %>%
+      pull(SITE)
+    
+    # Create bootstrapped dataset
+    boot_data <- dat_sub %>%
+      filter(YEAR != 2018 | SITE %in% sampled_sites)
+    
+    # Fit beta regression model
+    model <- glm(adjusted_density ~ factor(YEAR) * (SITE), data = boot_data)
+    
+    # Store coefficients
+    boot_results[[i]] <- tidy(model) %>%
+      select(term, estimate) %>%
+      mutate(bootstrap = i)
+  }
+  
+  # Combine results
+  boot_df <- bind_rows(boot_results)
+  
+  # Summarize bootstrapped estimates
+  boot_summary <- boot_df %>%
+    group_by(term) %>%
+    summarise(
+      estimate_mean = mean(estimate),
+      estimate_sd = sd(estimate),
+      lower_CI = quantile(estimate, 0.025),
+      upper_CI = quantile(estimate, 0.975)
+    )
+  
+  return(boot_summary)
+}
+
 #THIS ISN"T WORKING
 n_boot <- 1000
-target_n_sites <- 10  # 2018 only had 10 sites on south shore. 
+target_n_sites <- 15  # 2018 only had 10 sites on south shore. 
 
 set.seed(123)
 boot_results <- vector("list", n_boot)
@@ -158,7 +212,7 @@ boot_results <- vector("list", n_boot)
 for (i in 1:n_boot) {
   
   # List of bootstrapped site names for all years except 2018
-  sampled_sites <- filtered_density %>%
+  sampled_sites <- SOUTH_COLONY_DENSITY_filtered %>%
     filter(YEAR != 2018) %>% #not bootstrapping 2018
     distinct(YEAR, SITE) %>%
     group_by(YEAR) %>%
@@ -166,21 +220,21 @@ for (i in 1:n_boot) {
     ungroup()
   
   # add 2018 sites without resampling
-  sites_2018 <- filtered_density %>%
+  sites_2018 <- SOUTH_COLONY_DENSITY_filtered %>%
     filter(YEAR == 2018) %>%
     distinct(YEAR, SITE)
   
   sampled_sites_all <- bind_rows(sampled_sites, sites_2018)
   
   # Keep only rows from sampled sites
-  boot_data <- filtered_density %>%
+  boot_data <- SOUTH_COLONY_DENSITY_filtered %>%
     semi_join(sampled_sites_all, by = c("YEAR", "SITE"))
   
   # Fit a linear mixed model: random intercept for Site
-  model <- lmer(DENSITY ~ factor(YEAR) + (1 | SITE), data = boot_data)
+  #model <- lmer(adjusted_density ~ factor(YEAR) + (1 | SITE), data = boot_data)
   
   # Store model output
-  boot_results[[i]] <- tidy(model, effects = "fixed")  # Only fixed effects
+  #boot_results[[i]] <- tidy(model, effects = "fixed")  # Only fixed effects
 }
 
 # Combine and summarize results

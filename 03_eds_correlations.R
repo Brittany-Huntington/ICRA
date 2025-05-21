@@ -117,7 +117,7 @@ use_sub<- eds %>%
          #mean_annual_range_Wave_Height_WW3_Global_Hourly_YR01,
          #mean_Wind_Speed_NCEI_Daily_YR01,
          #mean_annual_range_Wind_Speed_NCEI_Daily_YR01,
-         mean_annual_range_KdPAR_NOAA_VIIRS_Monthly_YR01,
+        ## mean_annual_range_KdPAR_NOAA_VIIRS_Monthly_YR01,
          #mean_Chlorophyll_A_ESA_OC_CCI_v6.0_Monthly_YR01,
          #mean_Bleaching_Hotspot_CRW_Daily_YR01,
          #mean_annual_range_Bleaching_Hotspot_CRW_Daily_YR01
@@ -127,9 +127,11 @@ use_sub<- eds %>%
 
 #next is merging variables of interest back with Pm , density data.
 #first merge with PM data at colony level.
-merged_PM_colony <- eds %>%
+merged_PM_colony <- use_sub %>%
   left_join(ICRA_PM, by = "SITE")%>%
-  filter(year == 2025) #or use all years %>%
+  filter(year == 2025)%>% #or use all years %>%
+  select(-year, -YEAR, -lon, -Area_surveyed_m2, -COLONYLENGTH, -LATITUDE, -LONGITUDE, MAX_DEPTH_M)%>%
+  drop_na(PER_DEAD)
 
 #summarize PM per site
 PM <- ICRA_PM %>%
@@ -147,7 +149,7 @@ PM <- ICRA_PM %>%
 
 
 #join with density data and eds at site level. drop na's of PM and density
-merged_site <- eds %>%
+merged_site <- use_sub %>%
   left_join(PM, by = "SITE") %>%
   left_join(ICRA_den, by = "SITE")%>%
   mutate(
@@ -159,7 +161,3 @@ merged_site <- eds %>%
 
 #now need to model + run PCA/similar to see whether PM @ site level is correlated w/ any of these variables. 
 #could run density too..
-
-
-
-

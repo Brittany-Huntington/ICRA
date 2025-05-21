@@ -5,8 +5,8 @@ library(ggplot2)
 library(broom)
 library(purrr)
 
-load("data/COLONY_SIZE_PM.RData")
-SOUTH_COLONY_SIZE_PM<-read.csv("data/south_only_ICRA_Colony_level_data.csv")
+#load("data/COLONY_SIZE_PM.RData")
+load("data/filtered_south_colony_data.RData")
 
 # set colors
 vir_colors <- viridis(n = 4, option = "C")
@@ -16,7 +16,7 @@ custom_colors <- vir_colors
 custom_colors[4] <- "gold"  # DAA520 goldenrod 
 
 #double check numbers for PM data (remove NA, but keep zeros)
-COLONY_SIZE_PM %>%
+filtered_south_colony_data %>%
   group_by(YEAR) %>%
   filter(!is.na(PER_DEAD))%>%
   summarize(n_unique_sites = n_distinct(paste(LATITUDE, LONGITUDE)))
@@ -29,9 +29,9 @@ dat_sub <- COLONY_SIZE_PM %>%
   mutate(YEAR = factor(YEAR))  
 
 
-###########################################
-#Bootstrap and run glm for PM data by year#
-###########################################
+#######################################################
+#Bootstrap and run beta regression for PM data by year#
+#######################################################
 
 # calculate weights for glm 
 dat_sub <- dat_sub %>%
