@@ -8,13 +8,11 @@ library(viridis)
 library(ggridges)
 library(readxl)
 
-#dir = Sys.info()[7]
-#setwd(paste0("C:/Users/", dir, "/Documents/github/ICRA/"))
-#setwd("C:/github/ICRA/data")
 
 ####PREP DATA---------------
 
 #load data and filter data 
+t<-read.csv("data/CoralBelt_Adults_raw_CLEANED_2023.csv")
 
 ncrmp <- read.csv("data/CoralBelt_Adults_raw_CLEANED_2023.csv")%>% mutate_if(is.character,as.factor) %>%  
   filter(ISLANDCODE == "TUT", REEF_ZONE == "Forereef", OBS_YEAR != "2020", DEPTH_BIN == "Mid", SPCODE %in% c("ISSP", "ICRA")) %>%
@@ -25,7 +23,7 @@ ncrmp <- read.csv("data/CoralBelt_Adults_raw_CLEANED_2023.csv")%>% mutate_if(is.
 rename(YEAR = OBS_YEAR)%>%
   droplevels()
 
-#confirm no corals below 5cm are included. And note largest corals measured by NCRMP 
+#confirm no corals below 5cm are included. And note largest corals measured by NCRMP, which will be used as cutoff for 2025 (to correct for survey differneces biasing larger colonies) 
 ncrmp %>%
   group_by(YEAR) %>%
   summarise(
@@ -79,18 +77,22 @@ esa <- select(ICRA_2025, DATE_, COLONYLENGTH, MAX_DEPTH_M, Area_surveyed_m2, SIT
 #merge ncmrp and esa data    
 colnames(esa)
 colnames(ncrmp2)
-COLONY_SIZE_PM <- rbind(
+ALL_ICRA_SIZE_PM <- rbind(
   mutate(esa, Data_Source = "esa"),      
   mutate(ncrmp2, Data_Source = "ncrmp2") 
 ) %>%
   mutate(
     Bleaching_Period = ifelse(YEAR %in% c(2015, 2018, 2023), "Pre-Bleaching", "Post-Bleaching")
   )
-COLONY_SIZE_PM$YEAR <- ordered(COLONY_SIZE_PM$YEAR, levels = c("2015", "2018", "2023", "2025"))
+ALL_ICRA_SIZE_PM$YEAR <- ordered(ALL_ICRA_SIZE_PM$YEAR, levels = c("2015", "2018", "2023", "2025"))
+
+save(ALL_ICRA_SIZE_PM, file ="data/All_ICRA_SIZE_PM.RData")
+write.csv(ALL_ICRA_SIZE_PM, "data/All_ICRA_Colony_level_data_filtered.csv", row.names = FALSE)
+
 
 
 #manually removed all ICRA data from north side of island in arcGIS. both are plotted in map script for transparency and visualization.
-load("~/GitHub/ICRA/data/south_only_ICRA_Colony_level_data.csv")
+SOUTH_COLONY_SIZE_PM<-read.csv("~/GitHub/ICRA/data/south_only_ICRA_Colony_level_data.csv")
 
 #identify corals outside the size range (<5cm or >116cm, to account for differences in survey methods in 2025 vs. ncrmp) (to update density dataset)
 removed_data <- SOUTH_COLONY_SIZE_PM %>% 
@@ -113,14 +115,24 @@ save(removed_summary, file = "data/colonies_removed_due_to_size.RData")
 
 
 #remove those corals from dataset
-SOUTH_COLONY_SIZE_PM_filtered <- SOUTH_COLONY_SIZE_PM %>%
+ICRA_SIZE_PM <- SOUTH_COLONY_SIZE_PM %>%
   filter(COLONYLENGTH >= 4.9 & COLONYLENGTH <= 116.1)
 
 
-write.csv(SOUTH_COLONY_SIZE_PM_filtered, "data/south_ICRA_Colony_level_data_filtered.csv", row.names = FALSE)
 
+save(ICRA_SIZE_PM, file ="data/ICRA_SIZE_PM.RData")
+write.csv(ICRA_SIZE_PM, "data/south_ICRA_Colony_level_data_filtered.csv", row.names = FALSE)
 
+#remove feb 2025 data (since colony sizes weren't taken)
+ICRA_SIZE_PM_nofeb<-ICRA_SIZE_PM%>%
+  mutate(
+    DATE_ = mdy(DATE_),      
+    month = month(DATE_)    
+  ) %>%
+  filter(month != 2) #don't inlcude feb
 
+save(ICRA_SIZE_PM_nofeb, file ="data/ICRA_SIZE_PM_nofeb.RData")
+write.csv(ICRA_SIZE_PM_nofeb, "data/south_ICRA_Colony_level_data_filtered_nofeb.csv", row.names = FALSE)
 
 #save(COLONY_SIZE_PM, file = "data/COLONY_SIZE_PM.RData")
 
