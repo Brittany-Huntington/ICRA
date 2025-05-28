@@ -15,6 +15,7 @@ rm(list=ls())
 ICRA.dat <- read.csv("NCRMP_COlony_level_TUT_filtered.csv")%>% mutate_if(is.character,as.factor)%>%
   select(YEAR, DATE_, SITE, SPCODE, COLONYID)
 
+
 site <- read.csv("data/CoralBelt_Adults_raw_CLEANED_2023.csv")%>% mutate_if(is.character,as.factor)%>%
   filter(ISLANDCODE == "TUT", REEF_ZONE == "Forereef", OBS_YEAR != "2020", DEPTH_BIN == "Mid")%>%
   rename(YEAR = OBS_YEAR)%>%
@@ -37,24 +38,29 @@ col <-  ICRA.dat%>%
   summarise(COL_COUNT = n_distinct(COLONYID))
 
 NCRMP <- left_join(site, col)%>%
-  replace(is.na(.), 0) #%>%
-
-#removing large colonies to account for differences. Size is in colony level dataset. 
-#######
-
-#  mutate(DENSITY=COL_COUNT/SURVEYAREA)%>%
-#  ungroup()
+  replace(is.na(.), 0) %>%
+mutate(
+  DATE_ = as.character(DATE_),                     # factor → character
+  DATETIME = ymd_hms(DATE_),                       # parse full datetime properly
+  DATE_only = as.Date(DATETIME),                   # just the date
+  TIME_only = format(DATETIME, "%H:%M:%S"),        # just the time
+  DATE_formatted = format(DATE_only, "%m/%d/%Y") # custom format
+)
 
 NCRMP$YEAR <- as.factor(NCRMP$YEAR)
-
 
 ####read in and merge ESA data to NCRMP data
 ESA <- read_csv("data/ESA_Corals_Site_Density_2025.csv") %>% mutate_if(is.character,as.factor)
 as.factor(ESA$YEAR <- "2025")
 
-ESA <- ESA %>% select(YEAR, Date, Site, Lat, Long, Max_depth_m, Survey_area, COL_COUNT)%>%
-  rename(DATE_=Date, SITE=Site, LATITUDE =Lat, LONGITUDE = Long, SURVEYAREA = Survey_area, MAX_DEPTH_M = Max_depth_m)
-NCRMP <- NCRMP %>% select(-MIN_DEPTH_M)
+ESA <- ESA %>% 
+  rename(DATE_formatted=Date, SITE=Site, LATITUDE =Lat, LONGITUDE = Long, SURVEYAREA = Survey_area, MAX_DEPTH_M = Max_depth_m)%>%
+select(YEAR, DATE_formatted, SITE, LATITUDE, LONGITUDE, MAX_DEPTH_M, SURVEYAREA, COL_COUNT)
+
+
+NCRMP <- NCRMP %>% select(YEAR, DATE_formatted, SITE, LATITUDE, LONGITUDE, MAX_DEPTH_M, SURVEYAREA, COL_COUNT)
+
+#ESA$DATE_ <- as.factor(ESA$DATE_)
 
 #double check column names are the same 
 colnames(NCRMP)
@@ -80,18 +86,50 @@ write_csv(SITE_COUNT, "All_ICRA_Site_Counts.csv")
 #subset these data to only include data points from South side of Tutuila to remove surveying bias (ICRA is rare on north side)
 #this was done by importing this data into ArcGIS and selectign points manually. See map script for visualization.
 south_den<-read.csv("South_ICRA_Site_Counts.csv")
+
+#remove feb 2025 data
+south_den <- south_den %>%
+  left_join(
+    NCRMP %>% select(SITE, DATE_formatted) %>% rename(date_ncrmp = DATE_formatted),
+    by = "SITE"
+  ) %>%
+  left_join(
+    ESA %>% select(SITE, DATE_formatted) %>% rename(date_esa = DATE_formatted),
+    by = "SITE"
+  ) %>%
+  mutate(
+    DATE_formatted = coalesce(date_ncrmp, date_esa),     
+    DATE = mdy(DATE_formatted),                          
+    month = month(DATE)                                  
+  ) %>%
+  select(-date_ncrmp, -date_esa) #%>%
+ # filter(!(month == 2 & year(DATE) == 2025))
+
+
 south_den$COL_COUNT <- as.numeric(south_den$COL_COUNT)
 south_den$SURVEYAREA <- as.numeric(south_den$SURVEYAREA)
+
+south_den1<-south_den%>%
+  rename(YEAR=YEAR.x) %>%
+mutate(DENSITY=(COL_COUNT/SURVEYAREA))%>%
+  ungroup()
+
+save(south_den1, file="data/FEB_SOUTH_COLONY_DENSITY.RData")
+
 #load in the colonies that were too big to be counted (from colony-level script)
 load("data/colonies_removed_due_to_size.RData")
+
 
 #removed_summary%>%
 #  rename(YEAR = OBS_YEAR)%>%
 
 #subtract the # colonies that should be removed. Then calculate density
 SOUTH_COLONY_DENSITY<- south_den %>%
+  filter(!(month == 2 & year(DATE) == 2025))%>%
   mutate(DENSITY=(COL_COUNT/SURVEYAREA))%>%
-    ungroup()
+    ungroup()%>%
+  rename(YEAR=YEAR.x) 
+
 
 save(SOUTH_COLONY_DENSITY, file="data/SOUTH_COLONY_DENSITY.RData")
 

@@ -42,7 +42,21 @@ dat_sub <- dat_sub %>%
 # check: now, 2025 samples will each have smaller weights than 2015 or 2023 samples
 
 # Set parameters
-n_boot <- 1000
+#first filter out large colonies from 2025
+large_colonies <- ICRA_SIZE_PM %>%
+  filter(TAIL_BINS == "Q80")
+large_2025 <- large_colonies %>% filter(YEAR == 2025)
+
+#bootstrap
+set.seed(123)  
+large_2025_boot <- large_2025 %>% sample_n(35)
+
+#join bootstrapped 2025 data with prev years
+large_balanced <- bind_rows(large_prior, large_2025_boot)
+
+#confirm counts
+table(large_balanced$YEAR)
+large_prior <- large_colonies %>% filter(YEAR < 2025)
 target_n_sites <- 10  # to match 2018 effort
 
 set.seed(123)  # for reproducibility
