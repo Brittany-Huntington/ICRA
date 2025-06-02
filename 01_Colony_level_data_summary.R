@@ -11,6 +11,7 @@ library(glmmTMB)
 library(emmeans)
 library(broom.mixed)
 library(multcomp)
+library(emmeans)
 
 load(file ="data/All_ICRA_SIZE_PM.RData")
 load(file = "data/ICRA_SIZE_PM.RData")
@@ -607,7 +608,7 @@ ICRA_SIZE_PM <- ICRA_SIZE_PM %>%
          SITE = as.factor(SITE),
          TAIL_BINS = as.factor(TAIL_BINS))
 
-
+#not including TAIL_BINS as covariate b/c only modeling large here
 
 safe_fit <- function(data) {
   tryCatch(
@@ -672,14 +673,12 @@ head(boot_results) #2025 sig
  mod <- glmmTMB(PM ~ YEAR + (1 | SITE), family = beta_family(), data = ICRA_SIZE_PM)
  emmeans(mod, ~ YEAR, type = "response")
  
- mod2 <- glmmTMB(
-   PM ~ YEAR * TAIL_BINS + (1 | SITE),
+ mod2 <- glmmTMB(PM ~ YEAR * TAIL_BINS + (1 | SITE),
    family = beta_family(link = "logit"),
    data = ICRA_SIZE_PM
  )
 
  
- emm <- emmeans(mod2, ~ YEAR * size_class, type = "response")
 
  # Get the estimated marginal means
  pm_emmeans <- emmeans(mod2, ~ YEAR * TAIL_BINS, type = "response") %>%
@@ -817,8 +816,7 @@ med_data<- ICRA_SIZE_PM%>%
  summary_all <- bind_rows(summary_small, summary_med, summary_large)
  
  
- library(emmeans)
- 
+ #small emmeans
  emmeans_small <- emmeans(mod_small, ~ YEAR, type = "response")
  df_small <- as.data.frame(emmeans_small) %>%
    mutate(SIZE_CLASS = "Small")
@@ -834,11 +832,7 @@ med_data<- ICRA_SIZE_PM%>%
  df_med <- as.data.frame(emmeans_med) %>%
    mutate(SIZE_CLASS = "Medium")
  
- # For large, use bootstrap means and CIs you already have, merge with these dfs
- 
- 
- library(dplyr)
- 
+ #use bootstrap means and CIs for the large, merge w these. first back transofrm to get proportion again
  #filter by year
  boot_years <- boot_results %>%
    filter(grepl("YEAR", term)) %>%
