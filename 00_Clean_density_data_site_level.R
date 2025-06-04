@@ -139,7 +139,8 @@ SOUTH_COLONY_DENSITY_filtered<- SOUTH_COLONY_DENSITY %>%
     adjusted_colony_count = COL_COUNT - coalesce(removed_count, 0),
     adjusted_density = adjusted_colony_count / SURVEYAREA
   )
+save(SOUTH_COLONY_DENSITY, file="data/SOUTH_COLONY_DENSITY_filtered.RData")
 
 #Use adjusted_density in future analyses:
 save(SOUTH_COLONY_DENSITY_filtered, file="data/SOUTH_COLONY_DENSITY_filtered.RData")
-
+write.csv(SOUTH_COLONY_DENSITY_filtered, file="data/SOUTH_COLONY_DENSITY_filtered.csv")

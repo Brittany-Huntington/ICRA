@@ -7,6 +7,7 @@ library(hrbrthemes)
 library(viridis)
 library(ggridges)
 library(readxl)
+library(dplyr)
 
 
 ####PREP DATA---------------
@@ -23,7 +24,7 @@ ncrmp <- read.csv("data/CoralBelt_Adults_raw_CLEANED_2023.csv")%>% mutate_if(is.
 rename(YEAR = OBS_YEAR)%>%
   droplevels()
 
-#confirm no corals below 5cm are included. And note largest corals measured by NCRMP, which will be used as cutoff for 2025 (to correct for survey differneces biasing larger colonies) 
+#confirm no corals below 5cm are included. And note largest corals measured by NCRMP, which will be used as cutoff for 2025 (to correct for survey differences biasing larger colonies) 
 ncrmp %>%
   group_by(YEAR) %>%
   summarise(
@@ -49,7 +50,8 @@ ncrmp$YEAR <- as.factor(ncrmp$YEAR)
 ncrmp$COLONYLENGTH <- as.numeric(ncrmp$COLONYLENGTH)
 ncrmp$PER_DEAD <- as.numeric(ncrmp$PER_DEAD)
 ncrmp$DATE_ <- as.Date(ncrmp$DATE_)
-ncrmp2 <- select(ncrmp, DATE_,COLONYLENGTH, Area_surveyed_m2, MAX_DEPTH_M, SITE, PER_DEAD, LATITUDE, LONGITUDE, YEAR, TAIL_BINS)
+ncrmp2 <- dplyr::select(ncrmp, DATE_, COLONYLENGTH, Area_surveyed_m2, MAX_DEPTH_M, SITE, PER_DEAD, LATITUDE, LONGITUDE, YEAR, TAIL_BINS)
+
 
 #read in 2025 survey data
 ICRA_2025 <- read.csv("data/2025_ICRA_colony_level_TUT.csv") %>%
@@ -72,7 +74,7 @@ ICRA_2025$TAIL_BINS <- cut(
   breaks = c(-Inf, 12, 40, Inf), 
   labels = c('Q20', 'QMED', 'Q80'))
 
-esa <- select(ICRA_2025, DATE_, COLONYLENGTH, MAX_DEPTH_M, Area_surveyed_m2, SITE, PER_DEAD, LATITUDE, LONGITUDE, YEAR, TAIL_BINS)
+esa <- dplyr::select(ICRA_2025, DATE_, COLONYLENGTH, MAX_DEPTH_M, Area_surveyed_m2, SITE, PER_DEAD, LATITUDE, LONGITUDE, YEAR, TAIL_BINS)
 
 #merge ncmrp and esa data    
 colnames(esa)
@@ -87,7 +89,7 @@ ALL_ICRA_SIZE_PM <- rbind(
 ALL_ICRA_SIZE_PM$YEAR <- ordered(ALL_ICRA_SIZE_PM$YEAR, levels = c("2015", "2018", "2023", "2025"))
 
 save(ALL_ICRA_SIZE_PM, file ="data/All_ICRA_SIZE_PM.RData")
-write.csv(ALL_ICRA_SIZE_PM, "data/All_ICRA_Colony_level_data_filtered.csv", row.names = FALSE)
+#write.csv(ALL_ICRA_SIZE_PM, "data/All_ICRA_Colony_level_data_filtered.csv", row.names = FALSE)
 
 
 
@@ -97,7 +99,7 @@ SOUTH_COLONY_SIZE_PM<-read.csv("~/GitHub/ICRA/data/south_only_ICRA_Colony_level_
 #identify corals outside the size range (<5cm or >116cm, to account for differences in survey methods in 2025 vs. ncrmp) (to update density dataset)
 removed_data <- SOUTH_COLONY_SIZE_PM %>% 
   filter(!(as.numeric(COLONYLENGTH) > 4.9 )) %>%
-  select(SITE, COLONYLENGTH)
+  dplyr::select(SITE, COLONYLENGTH)
 
 removed_summary <- SOUTH_COLONY_SIZE_PM %>% 
   filter(COLONYLENGTH < 4.9 | COLONYLENGTH > 116.1) %>%
@@ -111,7 +113,7 @@ removed_summary <- SOUTH_COLONY_SIZE_PM %>%
 
 # View the summary
 print(removed_summary)
-save(removed_summary, file = "data/colonies_removed_due_to_size.RData")
+#save(removed_summary, file = "data/colonies_removed_due_to_size.RData")
 
 
 #remove those corals from dataset
@@ -121,7 +123,7 @@ ICRA_SIZE_PM <- SOUTH_COLONY_SIZE_PM %>%
 
 
 save(ICRA_SIZE_PM, file ="data/ICRA_SIZE_PM.RData")
-write.csv(ICRA_SIZE_PM, "data/south_ICRA_Colony_level_data_filtered.csv", row.names = FALSE)
+#write.csv(ICRA_SIZE_PM, "data/south_ICRA_Colony_level_data_filtered.csv", row.names = FALSE)
 
 #remove feb 2025 data (since colony sizes weren't taken)
 ICRA_SIZE_PM_nofeb<-ICRA_SIZE_PM%>%
@@ -151,7 +153,7 @@ ICRA_sub <- select(ICRA_20m, DATE_, COLONYLENGTH, Area_surveyed_m2, MAX_DEPTH_M,
 ICRA_sub$YEAR <- ordered(ICRA_sub$YEAR, levels = c("2015", "2018", "2023", "2025"))
 
 
-#combine the 20m data and store as seperate dataframe to compare survey methods
+#combine the 20m data and store as separate dataframe to compare survey methods
 colnames(ICRA_sub)
 ICRA_sub$Bleaching_Period <- "Post-Bleaching"
 combined_colony_data_by_method <- rbind(COLONY_SIZE_PM,ICRA_sub)
