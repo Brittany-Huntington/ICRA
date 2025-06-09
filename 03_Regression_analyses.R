@@ -3,15 +3,14 @@ library(tidyverse)
 library(corrplot)   
 library(GGally)    
 library(eds)
+load("data/eds_output.Rdata")
 load("data/ICRA_SIZE_PM_nofeb.RData")
 ICRA_PM<- ICRA_SIZE_PM_nofeb
 
 select = dplyr::select
 rename  = dplyr::rename
 
-#rename column name
-eds <- eds %>%
-  rename(SITE = site)
+
 
 #save the colnames as a file for ease in viewing variable names
 column_names <- colnames(eds)
