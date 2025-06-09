@@ -14,7 +14,7 @@ library(multcomp)
 library(emmeans)
 
 load(file ="data/All_ICRA_SIZE_PM.RData")
-load(file = "data/ICRA_SIZE_PM.RData")
+load(file = "data/ICRA_SIZE_PM_nofeb.RData")
 
 
 # set colors

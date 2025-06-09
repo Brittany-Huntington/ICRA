@@ -5,19 +5,35 @@ library(tidyverse)
 library(corrplot)   
 library(GGally)    
 library(eds)
-load("data/filtered_south_colony_data.RData")
-ICRA_PM<- filtered_south_colony_data
-ICRA_den<-read.csv("data/south_only_2025_ICRA_density_TUT.csv")
+library(hrbrthemes)
+library(viridis)
+library(ggridges)
+library(readxl)
+library(betareg)
+library(purrr)
+library(broom)
+library(glmmTMB)
+library(emmeans)
+library(broom.mixed)
+library(multcomp)
+library(emmeans)
+
+load("data/ICRA_SIZE_PM_nofeb.RData")
+ICRA_PM<- ICRA_SIZE_PM_nofeb
+
 load("data/eds_output.Rdata")
+
+select = dplyr::select
+rename  = dplyr::rename
 
 #rename column name
 eds <- eds %>%
-  dplyr::rename(SITE = site)
+  rename(SITE = site)
 
 #save the colnames as a file for ease in viewing variable names
 column_names <- colnames(eds)
 column_names_df <- data.frame(column_names)
-write.csv(column_names_df, "data/EDS_column_names.csv", row.names = FALSE)
+#write.csv(column_names_df, "data/EDS_column_names.csv", row.names = FALSE)
 
 #subset variables you want to use:
 sub<- eds %>%
@@ -90,29 +106,30 @@ p_values <- as.data.frame(as.table(res1$p))
 cor_p_table <- merge(cor_matrix, p_values, by = c("Var1", "Var2"))
 names(cor_p_table) <- c("Var1", "Var2", "Correlation", "P_Value")
 
-write.csv(cor_p_table, "correlations.csv", row.names = FALSE)
+#write.csv(cor_p_table, "correlations.csv", row.names = FALSE)
 
 
 significant_correlations <- cor_p_table[cor_p_table$P_Value < 0.05 & cor_p_table$Var1 != cor_p_table$Var2, ]
-write.csv(significant_correlations, "significant_correlations.csv", row.names = FALSE)
+#write.csv(significant_correlations, "significant_correlations.csv", row.names = FALSE)
 
 #######################################################################################
 #make a df / csv of the variables you want to use in the analysis. EDIT THIS
-use_sub<- eds %>%
-  select(year, SITE, lat, lon, DHW.MeanMax_Degree_Heating_Weeks_CRW_Daily_YR01,
+sub<- eds %>%
+  select(year, SITE, lat, lon, 
+         #DHW.MeanMax_Degree_Heating_Weeks_CRW_Daily_YR01,
          #DHW.MeanMax_Major_Degree_Heating_Weeks_CRW_Daily_YR01,
          DHW.MeanDur_Degree_Heating_Weeks_CRW_Daily_YR01,
          #DHW.MeanDur_Major_Degree_Heating_Weeks_CRW_Daily_YR01,
          #DHW.YearsToLast_Major_Degree_Heating_Weeks_CRW_Daily_YR10,
-         sd_Sea_Surface_Temperature_CRW_Daily_YR01,
+         #sd_Sea_Surface_Temperature_CRW_Daily_YR01,
          #mean_annual_range_Sea_Surface_Temperature_CRW_Daily_YR01,
          #mean_annual_range_Sea_Surface_Temperature_jplMUR_Daily_YR01,
          mean_monthly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01,
-        # mean_Sea_Surface_Temperature_jplMUR_Daily_YR01,
-         q05_Sea_Surface_Temperature_jplMUR_Daily_YR01,
+         mean_Sea_Surface_Temperature_jplMUR_Daily_YR01,
+         #q05_Sea_Surface_Temperature_jplMUR_Daily_YR01,
          #q95_Sea_Surface_Temperature_jplMUR_Daily_YR01,
-         #sd_Sea_Surface_Temperature_jplMUR_Daily_YR01,
-         #mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01,
+         sd_Sea_Surface_Temperature_jplMUR_Daily_YR01,
+         mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01,
          #mean_Wave_Height_WW3_Global_Hourly_YR01,
          #mean_annual_range_Wave_Height_WW3_Global_Hourly_YR01,
          #mean_Wind_Speed_NCEI_Daily_YR01,
@@ -125,12 +142,23 @@ use_sub<- eds %>%
   ) %>%
   filter(year == 2025) #or use all years %>%
 
+#rename predictors
+use_sub<- sub %>%
+  rename(
+    meandurDHW = DHW.MeanDur_Degree_Heating_Weeks_CRW_Daily_YR01,
+    meanSST = mean_Sea_Surface_Temperature_jplMUR_Daily_YR01,
+    sdSST = sd_Sea_Surface_Temperature_jplMUR_Daily_YR01,
+    meanmonthlyrangeSST = mean_monthly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01,
+    meanbiweeklyrangeSST = mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01
+  )
+
+
 #next is merging variables of interest back with Pm , density data.
 #first merge with PM data at colony level.
 merged_PM_colony <- use_sub %>%
   left_join(ICRA_PM, by = "SITE")%>%
   filter(year == 2025)%>% #or use all years %>%
-  select(-year, -YEAR, -lon, -Area_surveyed_m2, -COLONYLENGTH, -LATITUDE, -LONGITUDE, MAX_DEPTH_M)%>%
+  select(-year, -YEAR, -lon, -Area_surveyed_m2, COLONYLENGTH, -LATITUDE, -LONGITUDE, MAX_DEPTH_M)%>%
   drop_na(PER_DEAD)
 
 #summarize PM per site
@@ -148,16 +176,86 @@ PM <- ICRA_PM %>%
     ci_upper = if_else(sd_PM > 0, mean_PM + qt(0.975, df = n - 1) * se_PM, NA_real_))
 
 
-#join with density data and eds at site level. drop na's of PM and density
-merged_site <- use_sub %>%
+#join with eds at site level. drop na's of PM and density
+df <- use_sub %>%
   left_join(PM, by = "SITE") %>%
-  left_join(ICRA_den, by = "SITE")%>%
   mutate(
-    mean_PM = if_else(is.nan(mean_PM), NA_real_, mean_PM),
-    DENSITY = if_else(is.nan(DENSITY), NA_real_, DENSITY)
+    mean_PM = if_else(is.nan(mean_PM), NA_real_, mean_PM)
   ) %>%
-  drop_na(mean_PM, DENSITY)%>%
+  drop_na(mean_PM)%>%
   filter(year == 2025) #or use all years 
 
-#now need to model + run PCA/similar to see whether PM @ site level is correlated w/ any of these variables. 
-#could run density too..
+##########################
+#check for multicolinearity
+
+#fr courtney:
+#Testing for Multicolinarity
+preds<-merged_PM_colony[,3:7]
+# library(GGally)
+# ggpairs(preds)
+
+
+par(mfrow=c(1,1))
+M = cor(preds)
+#png(width = 750, height = 750, filename = "T:/Benthic/Projects/Juvenile Project/Figures/Drivers/JuvenilePredictorsCorPlot_AllYears.png")
+corrplot(M, method = 'number')
+dev.off()
+
+#
+#Confirmed with VIF - a priori cut off 3, but all less than 2.
+#fit1 <- lm(JuvColDen ~ CORAL + CoralSec_A +  CCA +  EMA_MA + SAND_RUB + Depth_Median +  
+ #            MeanDHW10 + Meanchla + MeanSST +
+#             WavePower + YearSinceDHW4 + logHumanDen +HerbivoreBio, data = df.new)
+
+fit1 <- lm(PER_DEAD ~ COLONYLENGTH + meandurDHW +  meanSST +  sdSST + meanmonthlyrangeSST + meanbiweeklyrangeSST,  
+             data = merged_PM_colony)
+
+car::vif(fit1)
+
+#make sure VIF values <3. play around w dropping a variable. 
+
+#remove any correlated vars and scale data. save w/ raw data and scaled. 
+preds <- scale(preds, center = T, scale = T);colnames(preds)<-paste("scaled",colnames(preds),sep="_")
+
+final.df<-cbind(merged_PM_colony,preds)
+
+
+#plot top predictors
+par(mfrow=c(2,2))
+plot(final.df$PER_DEAD~final.df$meandurDHW)
+plot(final.df$PER_DEAD~final.df$meanSST)
+plot(final.df$PER_DEAD~final.df$sdSST)
+plot(final.df$PER_DEAD~final.df$meanmonthlyrangeSST)
+plot(final.df$PER_DEAD~final.df$meanbiweeklyrangeSST)
+
+#now for backwards model selection: start w full model of all predictors,  remove least sig one at a time. wald test preditcts if regression coeff is sig diff fr 0.
+#use drop1() for betareg. (????)Fill in
+
+# Testing for polynomial relationships (this is to see whetehr non-libnear reelatuionships exist)
+
+#Testing polynomial relationships with colonylength, the SST predictor vars. (depth here)
+#can come back to this but probably dont need to do this given sample size 
+d_poly3<-svyglm(JuvColCount ~  
+                  poly(scaled_Depth_Median,3),
+                design=des, family="poisson",offset=log(TRANSECTAREA_j))
+
+d_poly2<-svyglm(JuvColCount ~  
+                  poly(scaled_Depth_Median,2),
+                design=des, family="poisson",offset=log(TRANSECTAREA_j))
+d<-svyglm(JuvColCount ~  
+            scaled_Depth_Median,
+          design=des, family="poisson",offset=log(TRANSECTAREA_j))
+
+anova(d,d_poly2) 
+anova(d_poly3,d_poly2) 
+
+AIC(d_poly3)
+AIC(d_poly2)
+AIC(d)
+#2nd order polynomial is best fit
+
+
+#######################################################################################################
+#now need to model + run PCA/similar to see whether PM @ site level is correlated w/ any of these variables.
+
+
