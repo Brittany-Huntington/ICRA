@@ -17,9 +17,16 @@ eds <- eds %>%
 column_names <- colnames(eds)
 column_names_df <- data.frame(column_names)
 
+#view just the 1 year variables
+yr01_columns <- column_names[grepl("_YR01$", column_names)]
+non_zero_yr01_columns <- yr01_columns[colSums(eds[, yr01_columns] != 0) > 0]
+print(non_zero_yr01_columns)
+
 #subset variables you want to use:
 sub<- eds %>%
-  select(year, lat, DHW.MeanMax_Degree_Heating_Weeks_CRW_Daily_YR01,
+  select(year, lat, 
+         mean_Bleaching_Alert_Area_7daymax_CRW_Daily_YR0
+         DHW.MeanMax_Degree_Heating_Weeks_CRW_Daily_YR01,
          DHW.MeanMax_Major_Degree_Heating_Weeks_CRW_Daily_YR01,
          DHW.MeanDur_Degree_Heating_Weeks_CRW_Daily_YR01,
          #DHW.MeanDur_Major_Degree_Heating_Weeks_CRW_Daily_YR01,

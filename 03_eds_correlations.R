@@ -26,10 +26,6 @@ load("data/eds_output.Rdata")
 select = dplyr::select
 rename  = dplyr::rename
 
-#rename column name
-eds <- eds %>%
-  rename(SITE = site)
-
 #save the colnames as a file for ease in viewing variable names
 column_names <- colnames(eds)
 column_names_df <- data.frame(column_names)
@@ -163,6 +159,7 @@ merged_PM_colony <- use_sub %>%
 
 #summarize PM per site
 PM <- ICRA_PM %>%
+  filter(year == 2025) %>%
   group_by(SITE) %>%
   summarise(
     n = sum(!is.na(PER_DEAD)),
@@ -172,8 +169,13 @@ PM <- ICRA_PM %>%
   ) %>%
   mutate(
     se_PM = sd_PM / sqrt(n),
-    ci_lower = if_else(sd_PM > 0, mean_PM - qt(0.975, df = n - 1) * se_PM, NA_real_),
-    ci_upper = if_else(sd_PM > 0, mean_PM + qt(0.975, df = n - 1) * se_PM, NA_real_))
+    ci_lower = if_else(n > 1, mean_PM - qt(0.975, df = n - 1) * se_PM, NA_real_),
+    ci_upper = if_else(n > 1, mean_PM + qt(0.975, df = n - 1) * se_PM, NA_real_)
+  )
+  #mutate(
+  #  se_PM = sd_PM / sqrt(n),
+  #  ci_lower = if_else(sd_PM > 0, mean_PM - qt(0.975, df = n - 1) * se_PM, NA_real_),
+  #  ci_upper = if_else(sd_PM > 0, mean_PM + qt(0.975, df = n - 1) * se_PM, NA_real_))
 
 
 #join with eds at site level. drop na's of PM and density
