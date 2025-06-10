@@ -19,6 +19,7 @@ custom_colors[4] <- "gold"  # DAA520 goldenrod
 load("data/filtered_colony_data.RData")
 load("data/filtered_south_colony_data.RData")
 
+
 tutuila_shape <- st_read("data/Tut_shapefiles/TUT.shp") #make sure folder has all shapefiles needed
 
 #plot PM, density across island
