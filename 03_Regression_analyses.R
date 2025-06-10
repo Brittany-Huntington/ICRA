@@ -24,14 +24,11 @@ print(non_zero_yr01_columns)
 #subset variables you want to use:
 sub<- eds %>%
   select(year, lat, 
-         mean_Bleaching_Alert_Area_7daymax_CRW_Daily_YR0
-         DHW.MeanMax_Degree_Heating_Weeks_CRW_Daily_YR01,
-         DHW.MeanMax_Major_Degree_Heating_Weeks_CRW_Daily_YR01,
-         DHW.MeanDur_Degree_Heating_Weeks_CRW_Daily_YR01,
-         #DHW.MeanDur_Major_Degree_Heating_Weeks_CRW_Daily_YR01,
-         #DHW.YearsToLast_Major_Degree_Heating_Weeks_CRW_Daily_YR10,
-         sd_Sea_Surface_Temperature_CRW_Daily_YR01,
-         #mean_annual_range_Sea_Surface_Temperature_CRW_Daily_YR01,
+         mean_Bleaching_Alert_Area_7daymax_jplMUR_Daily_YR0
+         DHW.MeanMax_Degree_Heating_Weeks_jplMUR_Daily_YR01,
+         DHW.MeanMax_Major_Degree_Heating_Weeks_jplMUR_Daily_YR01,
+         DHW.MeanDur_Degree_Heating_Weeks_jplMUR_Daily_YR01,
+         DHW.MeanDur_Major_Degree_Heating_Weeks_jplMUR_Daily_YR01,
          mean_annual_range_Sea_Surface_Temperature_jplMUR_Daily_YR01,
          mean_monthly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01,
          mean_Sea_Surface_Temperature_jplMUR_Daily_YR01,
@@ -39,17 +36,11 @@ sub<- eds %>%
          q95_Sea_Surface_Temperature_jplMUR_Daily_YR01,
          sd_Sea_Surface_Temperature_jplMUR_Daily_YR01,
          mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01,
-         #mean_Wave_Height_WW3_Global_Hourly_YR01,
-         #mean_annual_range_Wave_Height_WW3_Global_Hourly_YR01,
-         #mean_Wind_Speed_NCEI_Daily_YR01,
-         #mean_annual_range_Wind_Speed_NCEI_Daily_YR01,
-         mean_annual_range_KdPAR_NOAA_VIIRS_Monthly_YR01,
-         mean_Chlorophyll_A_ESA_OC_CCI_v6.0_Monthly_YR01,
-         mean_Bleaching_Hotspot_CRW_Daily_YR01,
-         mean_annual_range_Bleaching_Hotspot_CRW_Daily_YR01
+         mean_Bleaching_Hotspot_jplMUR_Daily_YR01,
+         mean_annual_range_Bleaching_Hotspot_jplMUR_Daily_YR01
          
-  ) %>%
-  filter(year == 2025)
+  ) #%>%
+  #filter(year == 2025)
 
 
 sub_numeric <- sub %>%
@@ -98,6 +89,21 @@ write.csv(cor_p_table, "correlations.csv", row.names = FALSE)
 significant_correlations <- cor_p_table[cor_p_table$P_Value < 0.05 & cor_p_table$Var1 != cor_p_table$Var2, ]
 write.csv(significant_correlations, "significant_correlations.csv", row.names = FALSE)
 
+#Courtney did this:
+#Testing for Multicolinarity
+which(colnames(r)=="CORAL")
+preds<-r[,9:ncol(r)]
+# library(GGally)
+# ggpairs(preds)
+
+
+par(mfrow=c(1,1))
+M = cor(preds)
+png(width = 750, height = 750, filename = "T:/Benthic/Projects/Juvenile Project/Figures/Drivers/JuvenilePredictorsCorPlot_AllYears.png")
+corrplot(M, method = 'number')
+dev.off()
+
+
 #######################################################################################
 #make a df / csv of the variables you want to use in the analysis. EDIT THIS
 use_sub<- eds %>%
@@ -127,6 +133,12 @@ use_sub<- eds %>%
   ) %>%
   filter(year == 2025) #or use all years %>%
 
+#Rename Predictors
+colnames(use_sub)[colnames(use_sub)=="DHW.MeanMax_Degree_Heating_Weeks_CRW_Daily_YR10"]<-"MeanDHW10"
+colnames(use_sub)[colnames(use_sub)=="mean_SST_CRW_CoralTemp_Daily_YR01"]<-"MeanSST"
+colnames(use_sub)[colnames(use_sub)=="mean_monthly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01"]<-"MonthlyrangeSST"
+colnames(use_sub)[colnames(use_sub)=="mean_biweekly_range_SST_CRW_CoralTemp_Daily_YR01"]<-"biweeklySST_Range"
+
 ###########################################################################################################
 #next is merging variables of interest back with Pm , density data.
 #first merge with PM data at colony level.
@@ -136,8 +148,87 @@ merged_PM_colony <- use_sub %>%
   select(-year, -YEAR, -lon, -Area_surveyed_m2, -COLONYLENGTH, -LATITUDE, -LONGITUDE, MAX_DEPTH_M)%>%
   drop_na(PER_DEAD)
 
-#summarize PM per site
-PM <- ICRA_PM %>%
+#subset by tailbin
+small<- merged_PM_colony %>%
+  filter (TAILBINS == "Q20")
+
+med<- merged_PM_colony %>%
+  filter (TAILBINS == "Qmed")
+
+large<- merged_PM_colony %>%
+  filter (TAILBINS == "Qlarge")
+
+
+
+#scale predictor variables
+preds <- scale(preds, center = T, scale = T);colnames(preds)<-paste("scaled",colnames(preds),sep="_")
+
+small.df<-cbind(small,preds)
+med.df<-cbind(med,preds)
+large.df<-cbind(large,preds)
+
+#quick plots of predictors
+par(mfrow=c(2,2))
+plot(small$PER_DEAD~small$MeanDHW10)
+plot(small$PER_DEAD~small$MeanDHW10)
+plot(small$PER_DEAD~small$MeanDHW10)
+plot(small$PER_DEAD~small$MeanDHW10)
+
+plot(med$PER_DEAD~med$MeanDHW10)
+plot(med$PER_DEAD~med$MeanDHW10)
+plot(med$PER_DEAD~med$MeanDHW10)
+plot(med$PER_DEAD~med$MeanDHW10)
+
+plot(large$PER_DEAD~large$MeanDHW10)
+plot(large$PER_DEAD~large$MeanDHW10)
+plot(large$PER_DEAD~large$MeanDHW10)
+plot(large$PER_DEAD~large$MeanDHW10)
+
+#if here is nonlinearity, test polynomial fit
+#d: Linear effect of depth
+#d_poly2: Quadratic relationship (e.g., hump-shaped)
+#d_poly3: Cubic relationship (allows for more bends in the curve)
+
+d_poly3<-glm(PER_DEAD ~  
+                  poly(var,3),
+                design=des, family="poisson",offset=log(TRANSECTAREA_j))
+
+d_poly2<-glm(PER_DEAD ~  
+                  poly(scaled_Depth_Median,2),
+                design=des, family="poisson",offset=log(TRANSECTAREA_j))
+d<-glm(PER_DEAD ~  
+            scaled_Depth_Median,
+          design=des, family="poisson",offset=log(TRANSECTAREA_j))
+
+anova(d,d_poly2) 
+anova(d_poly3,d_poly2) 
+
+AIC(d_poly3)
+AIC(d_poly2)
+AIC(d)
+
+#Global model by size class
+
+final.df$Strat_conc<-paste(final.df$OBS_YEAR, final.df$REGION,final.df$ISLAND,final.df$STRATANAME,sep = "_") #dont know if i need this
+des<-svydesign(id=~1, strata=~ Strat_conc, weights=~sw,data=final.df) #dont know if i need this
+global.mod1<-glm(PER_DEAD ~
+                      poly(scaled_CORAL,3,raw=TRUE)*scaled_MeanDHW10+ 
+                      scaled_CCA*poly(scaled_Depth_Median,2,raw=TRUE)+
+                      scaled_CoralSec_A*scaled_MeanDHW10 +
+                      scaled_EMA_MA*scaled_MeanDHW10 +
+                      scaled_SAND_RUB*scaled_MeanDHW10 +
+                      scaled_HerbivoreBio*scaled_MeanDHW10 +
+                      poly(scaled_Depth_Median,2,raw=TRUE)*scaled_MeanDHW10 +
+                      scaled_Meanchla +
+                      scaled_MeanSST +
+                      scaled_WavePower*scaled_MeanDHW10+
+                      scaled_YearSinceDHW4*scaled_MeanDHW10+
+                      scaled_logHumanDen*scaled_MeanDHW10,
+                    design=des, family="beta",offset=log(TRANSECTAREA_j))
+
+###############################################################################
+#summarize PM per site 
+PM_by_site <- ICRA_PM %>%
   group_by(SITE) %>%
   summarise(
     n = sum(!is.na(PER_DEAD)),
@@ -149,3 +240,5 @@ PM <- ICRA_PM %>%
     se_PM = sd_PM / sqrt(n),
     ci_lower = if_else(sd_PM > 0, mean_PM - qt(0.975, df = n - 1) * se_PM, NA_real_),
     ci_upper = if_else(sd_PM > 0, mean_PM + qt(0.975, df = n - 1) * se_PM, NA_real_))
+
+
