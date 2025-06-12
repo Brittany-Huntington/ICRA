@@ -374,7 +374,60 @@ for (group_name in names(grouped_data)) {
     }, silent = TRUE)  # continue loop if model fails
   }
 }
+#########################################
+# now need to look @ coefficients########
+# Fit model with predictors#############
+########################################
+model <- betareg(prop_DEAD ~ scaled_DHW_Mean + scaled_SST_AnnRange + scaled_SST_SD, data = small.df)
 
+# Summary with coefficients and significance
+summary(model)
+
+#showing higher mean DHW associated w lower PM in small
+
+model <- betareg(prop_DEAD ~ scaled_DHW_Mean + scaled_SST_AnnRange + scaled_SST_SD, data = med.df)
+
+# Summary with coefficients and significance
+summary(model)
+
+#shows sst annual range - more mortality (but barely significant)
+
+model <- betareg(prop_DEAD ~ scaled_DHW_Mean + scaled_SST_AnnRange + scaled_SST_SD, data = large.df)
+
+# Summary with coefficients and significance
+summary(model)
+
+# there are no significant predictors for large colonies from these 3 preds.
+
+
+#diagnostics, goodness of fit. residuals.
+# Extract residuals
+resid_pearson <- residuals(model, type = "pearson")
+
+# Residuals vs Fitted plot
+plot(fitted(model), resid_pearson,
+     xlab = "Fitted values",
+     ylab = "Pearson Residuals")
+abline(h = 0, col = "red")
+
+# QQ plot for residuals
+qqnorm(resid_pearson)
+qqline(resid_pearson, col = "red")
+
+# Pseudo R-squared (McFadden’s)
+pseudo_r2 <- 1 - (logLik(model)/logLik(update(model, .~1)))
+print(pseudo_r2)
+
+# Check overdispersion via precision parameter phi
+summary(model)$coefficients$precision
+
+
+#look at interaction terms
+# Fit model with interaction between x1 and x2
+model_inter <- betareg(y ~ x1 * x2, data = data)
+
+# Compare models with likelihood ratio test
+anova(model, model_inter, test = "LRT")
 
 
 ###############################################################################
