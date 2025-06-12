@@ -36,6 +36,18 @@ sub <- eds %>%
     DHW_Dur = DHW.MeanDur_Degree_Heating_Weeks_jplMUR_Daily_YR01,
     DHW_Dur_Major = DHW.MeanDur_Major_Degree_Heating_Weeks_jplMUR_Daily_YR01,
     DHW_Max_Major = DHW.MaxMax_Major_Degree_Heating_Weeks_jplMUR_Daily_YR01,
+    DHW_Mean_CRW = DHW.MeanMax_Degree_Heating_Weeks_CRW_Daily_YR01,
+    DHW_Mean_Major_CRW = DHW.MeanMax_Major_Degree_Heating_Weeks_CRW_Daily_YR01,
+    DHW_Dur_CRW = DHW.MeanDur_Degree_Heating_Weeks_CRW_Daily_YR01,
+    DHW_Dur_Major_CRW = DHW.MeanDur_Major_Degree_Heating_Weeks_CRW_Daily_YR01,
+    DHW_Max_Major_CRW = DHW.MaxMax_Major_Degree_Heating_Weeks_CRW_Daily_YR01,
+    SST_AnnRange_CRW = mean_annual_range_Sea_Surface_Temperature_CRW_Daily_YR01,
+    SST_MonthRange_CRW = mean_monthly_range_Sea_Surface_Temperature_CRW_Daily_YR01,
+    SST_Mean_CRW = mean_Sea_Surface_Temperature_CRW_Daily_YR01,
+    SST_Q05_CRW = q05_Sea_Surface_Temperature_CRW_Daily_YR01,
+    SST_Q95_CRW = q95_Sea_Surface_Temperature_CRW_Daily_YR01,
+    SST_SD_CRW = sd_Sea_Surface_Temperature_CRW_Daily_YR01,
+    SST_BiweekRange_CRW = mean_biweekly_range_Sea_Surface_Temperature_CRW_Daily_YR01,
     SST_AnnRange = mean_annual_range_Sea_Surface_Temperature_jplMUR_Daily_YR01,
     SST_MonthRange = mean_monthly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01,
     SST_Mean = mean_Sea_Surface_Temperature_jplMUR_Daily_YR01,
@@ -43,6 +55,7 @@ sub <- eds %>%
     SST_Q95 = q95_Sea_Surface_Temperature_jplMUR_Daily_YR01,
     SST_SD = sd_Sea_Surface_Temperature_jplMUR_Daily_YR01,
     SST_BiweekRange = mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01
+    
   )
 
 
@@ -60,6 +73,7 @@ M <- cor(sub_numeric_matrix, use = "pairwise.complete.obs") #pearsons
 corrplot(M, tl.col="black", tl.cex = 0.5, type = 'upper') #correlation plot showing the correlation coefficient
 res1 <- cor.mtest(sub_numeric_matrix, conf.level = 0.95)
 
+png("plots/jpl_vs_CRW_correlations.png", width = 1800, height = 1600, res = 300)
 corrplot(M, p.mat = res1$p, 
          sig.level = 0.05, 
          #insig = "p-value", # if you want to print nonsig pvalues
@@ -73,7 +87,7 @@ corrplot(M, p.mat = res1$p,
 dev.off()
 #combining correlogram with the significance test
 #save
-png("plots/corrplot_output.png", width = 800, height = 800)
+png("plots/SST_comparison_corrplot_output.png")
 par(mar = c(10, 4, 4, 2)) 
 # Generate the correlation plot
 corrplot(M, p.mat = res1$p, 
@@ -109,11 +123,11 @@ write.csv(significant_correlations, "significant_correlations.csv", row.names = 
 # ggpairs(preds)
 
 
-par(mfrow=c(1,1))
-M = cor(preds)
-png(width = 750, height = 750, filename = "T:/Benthic/Projects/Juvenile Project/Figures/Drivers/JuvenilePredictorsCorPlot_AllYears.png")
-corrplot(M, method = 'number')
-dev.off()
+#par(mfrow=c(1,1))
+#M = cor(preds)
+#png(width = 750, height = 750, filename = "T:/Benthic/Projects/Juvenile Project/Figures/Drivers/JuvenilePredictorsCorPlot_AllYears.png")
+#corrplot(M, method = 'number')
+#dev.off()
 
 
 #######################################################################################
@@ -138,7 +152,7 @@ use_sub<- sub %>%
 
 
 ###########################################################################################################
-#next is merging variables of interest back with Pm , density data.
+#next is merging variables of interest back with Pm , density data.separate by size class for modeling.
 #first merge with PM data at colony level.
 merged_PM_colony <- use_sub %>%
   left_join(ICRA_PM, by = "SITE")%>%
@@ -174,8 +188,10 @@ med.df <- med %>%
 large.df <- large %>%
   left_join(preds_df, by = "SITE")
 
-#quick plots of predictors
-par(mfrow=c(2,2))
+graphics.off()
+
+#quick plots of predictors. 
+par(mfrow=c(1,1))
 plot(small$PER_DEAD~small$DHW_Mean)
 plot(small$PER_DEAD~small$SST_AnnRange)
 plot(small$PER_DEAD~small$SST_SD)
@@ -189,10 +205,60 @@ plot(large$PER_DEAD~large$DHW_Mean)
 plot(large$PER_DEAD~large$SST_AnnRange)
 plot(large$PER_DEAD~large$SST_SD)
 
+#predictors correspond to site and there are many response variables (coloniy % dead) per site... 
+##########################
+# look at jittered points#
+##########################
+predictors <- c("DHW_Mean", "SST_AnnRange", "SST_SD")
+
+groups <- list(small = small, med = med, large = large)
+
+par(mfrow = c(2, 3))
+
+# Loop through each group and predictor to plot
+for (group_name in names(groups)) {
+  group_data <- groups[[group_name]]
+  
+  for (pred in predictors) {
+    plot(jitter(group_data[[pred]], amount = 0.1), group_data$PER_DEAD,
+         main = paste(group_name, ":", pred, "vs PER_DEAD"),
+         xlab = paste(pred, "(jittered)"),
+         ylab = "PER_DEAD")
+  }
+}
+
+
+########################################
+# Look at mean % dead at each predictor#
+########################################
+# Stack the data into long format
+long_data <- lapply(predictors, function(var) {
+  merged_PM_colony %>%
+    select(PER_DEAD, TAIL_BINS, !!sym(var)) %>%
+    rename(PredictorValue = !!sym(var)) %>%
+    mutate(Predictor = var)
+}) %>%
+  bind_rows()
+
+agg_data <- long_data %>%
+  group_by(Predictor, PredictorValue, TAIL_BINS) %>%
+  summarise(Mean_PER_DEAD = mean(PER_DEAD, na.rm = TRUE), .groups = "drop")
+
+ggplot(agg_data, aes(x = PredictorValue, y = Mean_PER_DEAD)) +
+  geom_line(aes(color = TAIL_BINS), size = 1) +
+  #geom_smooth(aes(color = TAIL_BINS), method = "loess", se = FALSE)
+  geom_point(aes(color = TAIL_BINS)) +
+  facet_wrap(~ Predictor, scales = "free_x") +
+  labs(x = "Predictor Value", y = "Mean % Dead Coral (PER_DEAD)",
+       title = "PER_DEAD vs Predictor by Size Class") +
+  theme_minimal()
+
+
 #if here is nonlinearity, test polynomial fit
 #d: Linear effect of depth
 #d_poly2: Quadratic relationship (e.g., hump-shaped)
 #d_poly3: Cubic relationship (allows for more bends in the curve)
+
 ###############
 ##small#######
 ###############
@@ -210,27 +276,6 @@ AIC(d_poly2)
 AIC(d)
 # 3 (polynomial) fits better for small size class
 
-newdata <- data.frame(
-  scaled_DHW_Mean = seq(min(small.df$scaled_DHW_Mean, na.rm=TRUE),
-                        max(small.df$scaled_DHW_Mean, na.rm=TRUE),
-                        length.out = 100))
-
-newdata$pred_linear <- predict(d, newdata, type = "response")
-newdata$pred_poly2  <- predict(d_poly2, newdata, type = "response")
-newdata$pred_poly3  <- predict(d_poly3, newdata, type = "response")
-
-ggplot(small.df, aes(x = scaled_DHW_Mean, y = prop_DEAD)) +
-  geom_point(alpha = 0.4) +  # observed data points
-  geom_line(data = newdata, aes(x = scaled_DHW_Mean, y = pred_linear), color = "blue", size = 1, linetype = "dashed") +
-  geom_line(data = newdata, aes(x = scaled_DHW_Mean, y = pred_poly2), color = "green", size = 1, linetype = "dotdash") +
-  geom_line(data = newdata, aes(x = scaled_DHW_Mean, y = pred_poly3), color = "red", size = 1) +
-  labs(
-    x = "Scaled DHW Mean",
-    y = "Proportion Dead",
-    title = "Model fits: Linear (blue), Quadratic (green), Cubic (red)"
-  ) +
-  theme_minimal()
-
 ###############
 ##### med #####
 ###############
@@ -246,28 +291,7 @@ lrtest(d, d_poly2, d_poly3)
 AIC(d_poly3)
 AIC(d_poly2)
 AIC(d)
-# 3 (polynomial) fits better for med size class
 
-newdata <- data.frame(
-  scaled_DHW_Mean = seq(min(med.df$scaled_DHW_Mean, na.rm=TRUE),
-                        max(med.df$scaled_DHW_Mean, na.rm=TRUE),
-                        length.out = 100))
-
-newdata$pred_linear <- predict(d, newdata, type = "response")
-newdata$pred_poly2  <- predict(d_poly2, newdata, type = "response")
-newdata$pred_poly3  <- predict(d_poly3, newdata, type = "response")
-
-ggplot(med.df, aes(x = scaled_DHW_Mean, y = prop_DEAD)) +
-  geom_point(alpha = 0.4) +  # observed data points
-  geom_line(data = newdata, aes(x = scaled_DHW_Mean, y = pred_linear), color = "blue", size = 1, linetype = "dashed") +
-  geom_line(data = newdata, aes(x = scaled_DHW_Mean, y = pred_poly2), color = "green", size = 1, linetype = "dotdash") +
-  geom_line(data = newdata, aes(x = scaled_DHW_Mean, y = pred_poly3), color = "red", size = 1) +
-  labs(
-    x = "Scaled DHW Mean",
-    y = "Proportion Dead",
-    title = "Model fits: Linear (blue), Quadratic (green), Cubic (red)"
-  ) +
-  theme_minimal()
 
 ###############
 #### large ####
@@ -286,91 +310,75 @@ AIC(d_poly2)
 AIC(d)
 # linear polynomial is best for large class
 
-# Create a sequence covering the range of your predictor
-newdata <- data.frame(
-  scaled_DHW_Mean = seq(min(large.df$scaled_DHW_Mean, na.rm=TRUE),
-                        max(large.df$scaled_DHW_Mean, na.rm=TRUE),
-                        length.out = 100))
 
-newdata$pred_linear <- predict(d, newdata, type = "response")
-newdata$pred_poly2  <- predict(d_poly2, newdata, type = "response")
-newdata$pred_poly3  <- predict(d_poly3, newdata, type = "response")
+######################################################################
+##### Make this into a loop to plot  predictors and size classes######
+######################################################################
 
-ggplot(large.df, aes(x = scaled_DHW_Mean, y = prop_DEAD)) +
-  geom_point(alpha = 0.4) +  # observed data points
-  geom_line(data = newdata, aes(x = scaled_DHW_Mean, y = pred_linear), color = "blue", size = 1, linetype = "dashed") +
-  geom_line(data = newdata, aes(x = scaled_DHW_Mean, y = pred_poly2), color = "green", size = 1, linetype = "dotdash") +
-  geom_line(data = newdata, aes(x = scaled_DHW_Mean, y = pred_poly3), color = "red", size = 1) +
-  labs(
-    x = "Scaled DHW Mean",
-    y = "Proportion Dead",
-    title = "Model fits: Linear (blue), Quadratic (green), Cubic (red)"
-  ) +
-  theme_minimal()
+predictors <- c("scaled_DHW_Mean", "scaled_SST_AnnRange", "scaled_SST_SD")
 
-#PLOT SMALL
-att <- attributes(scale(small.df$DHW_Mean))
+# List of data subsets
+grouped_data <- list(Small = small.df, Medium = med.df, Large = large.df)
 
-# Set breaks in original units (adjust as fits your variable's range)
-mylabels <- seq(9, 19, 1)  # change 0 and 40 to min/max range of DHW_Mean
+# Loop through each size class and each predictor
+for (group_name in names(grouped_data)) {
+  df <- grouped_data[[group_name]]
+  
+  # Filter only usable rows
+  df <- df %>% filter(!is.na(prop_DEAD), prop_DEAD > 0 & prop_DEAD < 1)
+  
+  for (pred in predictors) {
+    
+    # Skip if predictor has all NA
+    if (all(is.na(df[[pred]]))) next
+    
+    cat("\n\n-----", group_name, "-", pred, "-----\n")
+    
+    # Fit models
+    form_lin <- as.formula(paste0("prop_DEAD ~ poly(", pred, ", 1, raw=TRUE)"))
+    form_quad <- as.formula(paste0("prop_DEAD ~ poly(", pred, ", 2, raw=TRUE)"))
+    form_cubic <- as.formula(paste0("prop_DEAD ~ poly(", pred, ", 3, raw=TRUE)"))
+    
+    try({
+      d1 <- betareg(form_lin, data = df)
+      d2 <- betareg(form_quad, data = df)
+      d3 <- betareg(form_cubic, data = df)
+      
+      # Print model comparison
+      print(lrtest(d1, d2, d3))
+      cat("AIC - Linear:", AIC(d1), " Quadratic:", AIC(d2), " Cubic:", AIC(d3), "\n")
+      
+      # Generate new data for predictions
+      x_seq <- seq(min(df[[pred]], na.rm = TRUE), max(df[[pred]], na.rm = TRUE), length.out = 100)
+      newdata <- data.frame(x = x_seq)
+      colnames(newdata) <- pred  # rename column to match formula
+      
+      newdata$pred_linear <- predict(d1, newdata, type = "response")
+      newdata$pred_poly2  <- predict(d2, newdata, type = "response")
+      newdata$pred_poly3  <- predict(d3, newdata, type = "response")
+      
+      # Plot
+      p <- ggplot(df, aes_string(x = pred, y = "prop_DEAD")) +
+        geom_point(alpha = 0.4) +
+        geom_line(data = newdata, aes_string(x = pred, y = "pred_linear"), color = "blue", size = 1, linetype = "dashed") +
+        geom_line(data = newdata, aes_string(x = pred, y = "pred_poly2"), color = "green", size = 1, linetype = "dotdash") +
+        geom_line(data = newdata, aes_string(x = pred, y = "pred_poly3"), color = "red", size = 1) +
+        labs(
+          title = paste(group_name, "-", pred),
+          x = pred,
+          y = "Proportion Dead"
+        ) +
+        theme_minimal()
+      
+      print(p)
+    }, silent = TRUE)  # continue loop if model fails
+  }
+}
 
-#make breaks 
-mybreaks <- scale(mylabels, center = att$`scaled:center`, scale = att$`scaled:scale`)[,1]
 
-# model
-mod <- betareg(prop_DEAD ~ poly(scaled_DHW_Mean, 3, raw = TRUE), data = small.df)
-
-#predict data. Here Courtney calcualted SE but we can't do that w beta regression...
-p <- predict(d, newdata = df.d, type = "response",se.fit=TRUE)
-p<-as.data.frame(p)
-colnames(p)<-c("Predicted_Juv","SE_Juv")
-newdata<-cbind(df.d,p)
-newdata$Predict.lwr <- newdata$Predicted_Juv - 1.96 * newdata$SE_Juv # confidence interval upper bound
-newdata$Predict.upr <- newdata$Predicted_Juv + 1.96 * newdata$SE_Juv # confidence interval lower bound
-head(newdata)
-
-
-att <- attributes(scale(final.df$HerbivoreBio))
-mylabels <- seq(0,95,10)
-mybreaks <- scale(mylabels, att$`scaled:center`, att$`scaled:scale`)[,1]
-
-#Plot
-ggplot(newdata, aes(x = scaled_HerbivoreBio, y = Predicted_Juv)) +
-  geom_line() +
-  geom_ribbon(data = newdata,
-              aes(ymin = Predict.lwr, ymax = Predict.upr),
-              alpha = 0.1)+
-  geom_rug(data=newdata,mapping=aes(x=scaled_HerbivoreBio,y=0,color=REGION))+
-  ylab("Predicted Juvenile Abudance") +
-  xlab("Herbivore Biomass (g/m2)")+ 
-  scale_x_continuous(labels=mylabels,breaks=mybreaks)
-
-
-
-
-#Global model by size class
-
-
-#courtneys
-final.df$Strat_conc<-paste(final.df$OBS_YEAR, final.df$REGION,final.df$ISLAND,final.df$STRATANAME,sep = "_") #dont know if i need this
-des<-svydesign(id=~1, strata=~ Strat_conc, weights=~sw,data=final.df) #dont know if i need this
-global.mod1<-glm(PER_DEAD ~
-                      poly(scaled_CORAL,3,raw=TRUE)*scaled_MeanDHW10+ 
-                      scaled_CCA*poly(scaled_Depth_Median,2,raw=TRUE)+
-                      scaled_CoralSec_A*scaled_MeanDHW10 +
-                      scaled_EMA_MA*scaled_MeanDHW10 +
-                      scaled_SAND_RUB*scaled_MeanDHW10 +
-                      scaled_HerbivoreBio*scaled_MeanDHW10 +
-                      poly(scaled_Depth_Median,2,raw=TRUE)*scaled_MeanDHW10 +
-                      scaled_Meanchla +
-                      scaled_MeanSST +
-                      scaled_WavePower*scaled_MeanDHW10+
-                      scaled_YearSinceDHW4*scaled_MeanDHW10+
-                      scaled_logHumanDen*scaled_MeanDHW10,
-                    design=des, family="beta",offset=log(TRANSECTAREA_j))
 
 ###############################################################################
-#summarize PM per site 
+#summarize mean PM per site (not separating by size class)
 PM_by_site <- ICRA_PM %>%
   group_by(SITE) %>%
   summarise(
