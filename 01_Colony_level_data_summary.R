@@ -123,6 +123,28 @@ ICRA_PM_S_site_2025<-ICRA_PM_site_2025%>%
 
 save(ICRA_PM_S_site_2025, file = "data/ICRA_PM_S_site2025.RData")
 
+#2025 south colony level data:
+ICRA_PM_S_colony_2025<-ICRA_2025_unfiltered%>%
+  filter(!is.na(PER_DEAD), !SITE %in% c(
+    "TUT-061",
+    "TUT-062",
+    "TUT-201",
+    "TUT-069",
+    "TUT-202",
+    "TUT-066",
+    "TUT-203",
+    "TUT-058",
+    "TUT-060",
+    "TUT-025",
+    "TUT-041",
+    "TUT-030",
+    "TUT-215",
+    "TUT-053",
+    "TUT-224",
+    "TUT-035",
+    "TUT-052",
+    "TUT-144"))
+save(ICRA_PM_S_colony_2025, file = "data/ICRA_PM_S_colony2025.RData")
 
 #compute mean size per year for measured colonies
 mean_size_per_year_march <- ALL_ICRA_SIZE_PM %>%
