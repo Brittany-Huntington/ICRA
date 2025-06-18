@@ -64,6 +64,7 @@ south_sites<-south_sites%>%
          scaled_DHW_Dur = scale(DHW_Dur))
 site_model <- betareg(prop_mean_PM ~ scaled_DHW_Mean + scaled_DHW_Dur, data = south_sites)
 summary(site_model)
+#nothing
 
 ggplot(south_sites, aes(x = scaled_DHW_Mean, y = prop_mean_PM)) +
   geom_point() +
@@ -127,6 +128,10 @@ ggplot(new_data, aes(x = scaled_DHW_Mean, y = predicted_PM)) +
   labs(x = "Scaled DHW Mean", y = "Predicted Proportion PM") +
   theme_minimal()
 
+ggplot(threshold_site_scaled, aes(x = scaled_DHW_Mean, y = prop_mean_PM)) +
+  geom_point() +
+  geom_smooth(method = "loess")  # or method = "glm", method.args = list(family = binomial)
+
 
 ######################################
 ###looking at March + Feb COLONY data#
@@ -164,6 +169,11 @@ ggplot(south_colonies_scaled, aes(x = scaled_DHW_Dur, y = residuals)) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
   labs(x = "Scaled DHW Duration", y = "Randomized Quantile Residuals") +
   theme_minimal()
+
+ggplot(south_colonies_scaled, aes(x = scaled_DHW_Dur, y = prop_PM_adj)) +
+  geom_point() +
+  geom_smooth(method = "loess")  # or method = "glm", method.args = list(family = binomial)
+
 
 ######################################
 ###looking at March + Feb COLONY data#
@@ -218,6 +228,12 @@ ggplot(large_colonies, aes(x = scaled_DHW_Mean, y = residuals)) +
   labs(x = "Scaled DHW Mean", y = "Randomized Quantile Residuals") +
   theme_minimal()
 
+ggplot(large_colonies, aes(x = scaled_DHW_Mean, y = prop_PM_adj)) +
+  geom_point() +
+  geom_smooth(method = "loess")  # or method = "glm", method.args = list(family = binomial)
+
+
+
 ##############################################################
 ###looking at March COLONY data w continuous SIZE interaction#
 ##############################################################
@@ -240,5 +256,6 @@ colony_model_by_class<-betareg(prop_PM_adj ~ (scaled_DHW_Mean + scaled_DHW_Dur) 
 summary(colony_model_by_class)
 #sig correlation of qmed and q80 with PM, nothing else
 
-
+#IN SUMMARY
+#when 
 
