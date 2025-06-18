@@ -151,7 +151,7 @@ save(ICRA_SIZE_PM_SOUTH_filtered, file ="data/ICRA_SIZE_PM_SOUTH_sizefiltered.RD
 write.csv(ICRA_SIZE_PM_SOUTH_filtered, "data/south_ICRA_Colony_level_data_sizefiltered.csv", row.names = FALSE)
 
 #calculate average PM per site
-avg_PM_south2025_nofeb<-ICRA_SIZE_PM%>%
+avg_PM_south2025_nofeb<-ICRA_SIZE_PM_SOUTH_filtered%>%
   filter(YEAR==2025)%>%
 group_by(SITE) %>%
   summarise(

@@ -13,8 +13,10 @@ library(broom.mixed)
 library(multcomp)
 library(emmeans)
 
-load(file ="data/All_ICRA_SIZE_PM.RData")
-load(file = "data/ICRA_SIZE_PM_nofeb.RData") #has march 2025 data, removed large colonies from 2025. USE
+load(file ="data/All_ICRA_SIZE_PM.RData") #north and south
+load(file = "data/south_only_ICRA_Colony_level_data.csv") #this contains all south data
+load(file = "data/ICRA_SIZE_PM_SOUTH_sizefiltered.RData") #south data from all years but 2025 only has march data bc large colonies were removed 
+load(file = "data/ICRA_2025_SIZE_PM_nofeb.RData") #march 2025 data without large colonies. USE
 
 
 # set colors
@@ -26,7 +28,7 @@ custom_colors[4] <- "gold"  # DAA520 goldenrod
 
 #Data summaries
 
-#how many corals were sized (Feb 20205 data size wasn't taken)
+#how many corals were sized (Feb 2025 data size wasn't taken)
 summary_by_year_and_total_all <- ALL_ICRA_SIZE_PM %>%
   group_by(Data_Source, YEAR) %>%
   summarise(
