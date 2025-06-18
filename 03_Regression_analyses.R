@@ -10,6 +10,7 @@ library(ggplot2)
 library(dplyr)
 load("data/eds_output.Rdata")
 load("data/ICRA_SIZE_PM_nofeb.RData")
+load("data/ICRA_PM_S_site2025.RData")
 ICRA_PM<- ICRA_SIZE_PM_nofeb %>%
   mutate(prop_DEAD = PER_DEAD / 100)
 
@@ -32,12 +33,12 @@ print(non_zero_yr01_columns)
 sub_eds <- eds %>%
   select(SITE,
     lat,
-    DHW_Mean = DHW.MeanMax_Degree_Heating_Weeks_jplMUR_Daily_YR01,
-    DHW_MeanMax_Major = DHW.MeanMax_Major_Degree_Heating_Weeks_jplMUR_Daily_YR01,
-    DHW_Dur = DHW.MeanDur_Degree_Heating_Weeks_jplMUR_Daily_YR01,
-    DHW_Dur_Major = DHW.MeanDur_Major_Degree_Heating_Weeks_jplMUR_Daily_YR01,
-    DHW_Max_Major = DHW.MaxMax_Major_Degree_Heating_Weeks_jplMUR_Daily_YR01,
-    DHW_Max_Major5 = DHW.MaxMax_Major_Degree_Heating_Weeks_jplMUR_Daily_YR10,
+     DHW_Mean = DHW.MeanMax_Degree_Heating_Weeks_jplMUR_Daily_YR01,
+    # DHW_MeanMax_Major = DHW.MeanMax_Major_Degree_Heating_Weeks_jplMUR_Daily_YR01,
+     DHW_Dur = DHW.MeanDur_Degree_Heating_Weeks_jplMUR_Daily_YR01,
+    # DHW_Dur_Major = DHW.MeanDur_Major_Degree_Heating_Weeks_jplMUR_Daily_YR01,
+    # DHW_Max_Major = DHW.MaxMax_Major_Degree_Heating_Weeks_jplMUR_Daily_YR01,
+    # DHW_Max_Major5 = DHW.MaxMax_Major_Degree_Heating_Weeks_jplMUR_Daily_YR10,
     # DHW_Mean_CRW = DHW.MeanMax_Degree_Heating_Weeks_CRW_Daily_YR01,
     # DHW_Mean_Major_CRW = DHW.MeanMax_Major_Degree_Heating_Weeks_CRW_Daily_YR01,
     # DHW_Dur_CRW = DHW.MeanDur_Degree_Heating_Weeks_CRW_Daily_YR01,
@@ -59,7 +60,7 @@ sub_eds <- eds %>%
     SST_BiweekRange = mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01
     
   )
-
+write.csv(sub_eds, "edsparameters.csv")
 
 
 sub_numeric <- sub_eds %>%
@@ -75,7 +76,7 @@ M <- cor(sub_numeric_matrix, use = "pairwise.complete.obs") #pearsons
 corrplot(M, tl.col="black", tl.cex = 0.5, type = 'upper') #correlation plot showing the correlation coefficient
 res1 <- cor.mtest(sub_numeric_matrix, conf.level = 0.95)
 
-#png("plots/jpl_correlations.png", width = 1800, height = 1600, res = 300)
+png("plots/jpl_SST_correlations.png", width = 1800, height = 1600, res = 300)
 corrplot(M, p.mat = res1$p, 
          sig.level = 0.05, 
          #insig = "p-value", # if you want to print nonsig pvalues
@@ -139,7 +140,7 @@ use_sub<- sub_eds %>%
          #lat,
          DHW_Mean,
          #DHW_MeanMax_Major,
-         DHW_Dur,
+         DHW_Dur
          #DHW_Dur_Major,
          #DHW_Max_Major,
          #SST_AnnRange,
@@ -155,8 +156,14 @@ use_sub<- sub_eds %>%
 
 ###########################################################################################################
 #next is merging variables of interest back with Pm , density data.separate by size class for modeling.
-#first merge with PM data at colony level.
-merged_PM_colony <- use_sub %>%
+#merge eds data with site-averaged PM for all 2025 south sites (march and feb)
+merged2025_PM_S_site<-use_sub %>%
+  left_join(ICRA_PM_S_site_2025, by = "SITE")%>%
+  filter(!is.na(mean_PM))
+write.csv(merged2025_PM_S_site, file ="merged2025_PM_S_site.csv")              
+ 
+# merge with PM data at colony level.
+merged_PM_colony <- sub_eds %>%
   left_join(ICRA_PM, by = "SITE")%>%
   #select(-lon, -Area_surveyed_m2, -COLONYLENGTH, -LATITUDE, -LONGITUDE, MAX_DEPTH_M)%>%
   drop_na(PER_DEAD)
@@ -164,15 +171,15 @@ merged_PM_colony <- use_sub %>%
 #subset by tailbin
 small<- merged_PM_colony %>%
   filter (TAIL_BINS == "Q20")
-write.csv(small, "small_ICRA.csv") 
+write.csv(small, "small_ICRA_allpreds.csv") 
 
 med<- merged_PM_colony %>%
   filter (TAIL_BINS == "QMED")
-write.csv(med, "med_ICRA.csv") 
+write.csv(med, "med_ICRA_allpreds.csv") 
 
 large<- merged_PM_colony %>%
   filter (TAIL_BINS == "Q80")
-write.csv(large, "large_ICRA.csv") 
+write.csv(large, "large_ICRA_allpreds.csv") 
 
 #define and scale predictors
 preds <- use_sub %>%

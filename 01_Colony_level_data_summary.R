@@ -81,8 +81,51 @@ summary_by_year_and_totalPM_south <- ICRA_SIZE_PM %>%
 
 #should bootstrap these data due to the bias for large colonies in 2025 (indeed, 195 large corals were sampled as opposed to 35 in 2023)
 
-  # Compute mean size per year
-mean_size_per_year_all <- ALL_ICRA_SIZE_PM %>%
+
+
+  # Compute mean size in 2025 of all ICRA
+ICRA_2025_unfiltered<-ALL_ICRA_SIZE_PM%>%
+  filter(YEAR=="2025")
+
+ICRA_PM_site_2025<-ICRA_2025_unfiltered%>%
+  group_by(SITE, LATITUDE, LONGITUDE) %>%
+  summarise(date = min(DATE_), #keep date column
+            mean_PM = mean(PER_DEAD, na.rm = TRUE),
+            sd_PM = sd(PER_DEAD, na.rm = TRUE),
+            maxPM = if (all(is.na(PER_DEAD))) NA_real_ else max(PER_DEAD, na.rm = TRUE),
+            minPM = if (all(is.na(PER_DEAD))) NA_real_ else min(PER_DEAD, na.rm = TRUE),
+            n = sum(!is.na(PER_DEAD)),
+            se = sd_PM / sqrt(n),
+            .groups = "drop")
+
+save(ICRA_PM_site_2025, file = "data/ICRA_PM_site2025.RData")
+
+ICRA_PM_S_site_2025<-ICRA_PM_site_2025%>%
+  filter(!is.na(mean_PM), !SITE %in% c(
+    "TUT-061",
+    "TUT-062",
+    "TUT-201",
+    "TUT-069",
+    "TUT-202",
+    "TUT-066",
+    "TUT-203",
+    "TUT-058",
+    "TUT-060",
+    "TUT-025",
+    "TUT-041",
+    "TUT-030",
+    "TUT-215",
+    "TUT-053",
+    "TUT-224",
+    "TUT-035",
+    "TUT-052",
+    "TUT-144"))
+
+save(ICRA_PM_S_site_2025, file = "data/ICRA_PM_S_site2025.RData")
+
+
+#compute mean size per year for measured colonies
+mean_size_per_year_march <- ALL_ICRA_SIZE_PM %>%
   group_by(YEAR, TAIL_BINS) %>%
   summarise(COLONYLENGTH = mean(COLONYLENGTH, na.rm = TRUE))
 #1 2015  Q20               8.21

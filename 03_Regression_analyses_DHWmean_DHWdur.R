@@ -12,14 +12,27 @@ small<-read.csv("small_ICRA_avg.csv")
 med<-read.csv("med_ICRA_avg.csv")
 large<-read.csv("large_ICRA_avg.csv")
 
+
+merged_small <- sub_eds %>%
+  left_join(small, by = "SITE")%>%
+  drop_na(TAIL_BINS)
+
+merged_med <- sub_eds %>%
+  left_join(med, by = "SITE")%>%
+  drop_na(TAIL_BINS)
+
+merged_large <- sub_eds %>%
+  left_join(large, by = "SITE")%>%
+  drop_na(TAIL_BINS)
+
 small<-small%>%
   mutate(prop_mean_PM = mean_PM / 100,
 scaled_DHW_Mean = scale(DHW_Mean),
-scaled_DHW_Dur = scale(DHW_Dur))
+scaled_DHW_Dur = scale(DHW_Dur),
+prop_mean_PM_adj = (prop_mean_PM * (n - 1) + 0.5) / n))
 
 #small has 3 sites with 0 PM in small corals. make the zeros 0.5
-small <- small %>%
-  mutate(prop_mean_PM_adj = (prop_mean_PM * (n - 1) + 0.5) / n)
+
 
 med<-med%>%
   mutate(prop_mean_PM = mean_PM / 100,

@@ -18,6 +18,9 @@ custom_colors[4] <- "gold"  # DAA520 goldenrod
 #load PM size data
 load("data/filtered_colony_data.RData")
 load("data/filtered_south_colony_data.RData")
+load("data/ICRA_PM_site2025.RData")
+
+s_check<-read.csv("merged2025_PM_S_site.csv")
 
 
 tutuila_shape <- st_read("data/Tut_shapefiles/TUT.shp") #make sure folder has all shapefiles needed
@@ -34,6 +37,9 @@ mean_PM_per_year_site <- filtered_colony_data %>%
   group_by(YEAR, SITE, LATITUDE, LONGITUDE) %>%
   summarise(mean_PM = mean(PER_DEAD, na.rm = TRUE))
 
+# mean PM per year/site of all sites unfiltered by size cutoff
+ICRA_PM_site_2025
+
 #assign coordinates for PM data. Want to keep PM=0 but not NA
 sites_sf_PM_south <- mean_PM_per_year_site_south %>%
   #filter(!is.na(mean_PM)) %>%
@@ -45,14 +51,54 @@ sites_sf_PM <- mean_PM_per_year_site %>%
   distinct(LATITUDE, LONGITUDE, YEAR, .keep_all = TRUE) %>%  # keep all columns
   st_as_sf(coords = c("LONGITUDE", "LATITUDE"), crs = 4326)  # WGS84 
 
+sites_sf_PM_2025 <- s_check %>%
+  #filter(!is.na(mean_PM)) %>%
+  distinct(LATITUDE, LONGITUDE, .keep_all = TRUE) %>%  # keep all columns
+  st_as_sf(coords = c("LONGITUDE", "LATITUDE"), crs = 4326)  # WGS84 
+
 
 #plot PM
 sites_sf_PM_south <- sites_sf_PM_south %>%
   mutate(shape_code = ifelse(is.na(mean_PM), "NA", as.character(YEAR)))
 sites_sf_PM <- sites_sf_PM %>%
   mutate(shape_code = ifelse(is.na(mean_PM), "NA", as.character(YEAR)))
+sites_sf_PM2025 <- sites_sf_PM_2025
+  
 
 ggplot() +
+  geom_sf(data = tutuila_shape, fill = "gray90", color = "black") +
+  geom_sf(data = sites_sf_PM_2025, aes(color = mean_PM), 
+          size = 2, alpha = 0.7) +
+  geom_text(data = sites_sf_PM_2025,
+            aes(x = st_coordinates(geometry)[,1],
+                y = st_coordinates(geometry)[,2],
+                label = SITE),
+            size = 2, hjust = -0.2, vjust = 0) +
+ 
+  scale_color_viridis(option = "C") +
+  labs(
+    x = "Longitude", y = "Latitude",
+    color = "Mean % PM"
+  ) +
+  coord_sf(expand = FALSE) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 5, angle = 90, hjust = 0),
+    axis.text.y = element_text(size = 5),
+    axis.title = element_text(size = 8),
+    text = element_text(size = 6),
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "top",
+    legend.key.size = unit(0.2, "cm"),
+    legend.box = "horizontal",  
+    legend.text = element_text(size = 5),
+    legend.title = element_text(size = 5)
+  )
+
+ggplot2::ggsave ("plots/Map_Partial_mortaltiy_2025.jpeg", width = 10, height = 5, units = 'in')
+
+
+p<-ggplot() +
   geom_sf(data = tutuila_shape, fill = "gray90", color = "black") +
   geom_sf(data = sites_sf_PM_south, aes(color = mean_PM, shape = shape_code), 
           size = 2, alpha = 0.7) +
