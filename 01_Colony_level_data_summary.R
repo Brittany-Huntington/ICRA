@@ -14,7 +14,7 @@ library(multcomp)
 library(emmeans)
 
 load(file ="data/All_ICRA_SIZE_PM.RData")
-load(file = "data/ICRA_SIZE_PM_nofeb.RData")
+load(file = "data/ICRA_SIZE_PM_nofeb.RData") #has march 2025 data, removed large colonies from 2025. USE
 
 
 # set colors
@@ -41,15 +41,15 @@ summary_by_year_and_total_all <- ALL_ICRA_SIZE_PM %>%
 # ncrmp2      2023           180        0
 
 #how many corals were sized in south sites only (Feb 2025 size wasn't taken)
-summary_by_year_and_total_SOUTH <- ICRA_SIZE_PM %>%
+summary_by_year_and_total_SOUTH <- ICRA_SIZE_PM_nofeb %>%
   group_by(Data_Source, YEAR) %>%
   summarise(
     non_na_count = sum(!is.na(COLONYLENGTH)),
     na_count = sum(is.na(COLONYLENGTH)),
     .groups = "drop"  
   ) 
-#1 esa          2025          617      569
-#2 ncrmp2       2015           53        0
+#1 esa          2025          605        0
+#2 ncrmp2       2015           52        0
 #3 ncrmp2       2018           44        0
 #4 ncrmp2       2023          179        0
 
@@ -145,7 +145,7 @@ mean_PM_per_year_all <- ALL_ICRA_SIZE_PM %>%
 # almost four fold increase in PM
 
 # mean PM per year south only
-mean_PM_per_year_south <- ICRA_SIZE_PM %>%
+mean_PM_per_year_south <- ICRA_SIZE_PM_nofeb %>%
   group_by(YEAR) %>%
   summarise(mean_PM = mean(PER_DEAD, na.rm = TRUE),
             sd_PM = sd(PER_DEAD, na.rm = TRUE),
@@ -181,7 +181,7 @@ mean_PM_per_year_bin_all <- ALL_ICRA_SIZE_PM %>%
 #13 2025  NA         25.6
 
 # mean PM per year south only
-mean_PM_per_year_south_bin <- ICRA_SIZE_PM %>%
+mean_PM_per_year_south_bin <- ICRA_SIZE_PM_nofeb %>%
   group_by(YEAR, TAIL_BINS) %>%
   summarise(mean_PM = mean(PER_DEAD, na.rm = TRUE))
 #1  2015 Q20         2.81 
@@ -199,7 +199,7 @@ mean_PM_per_year_south_bin <- ICRA_SIZE_PM %>%
 
 
 #calculate summary stats of PM by year
-summary_stats_year <- ICRA_SIZE_PM %>%
+summary_stats_year <- ICRA_SIZE_PM_nofeb %>%
   group_by(YEAR)%>%
   summarise(
     Mean_PM = mean(PER_DEAD, na.rm = TRUE),
@@ -212,7 +212,7 @@ summary_stats_year <- ICRA_SIZE_PM %>%
   )
 
 #calculate summary stats of PM by size and year
-summary_stats_size <- ICRA_SIZE_PM %>%
+summary_stats_size <- ICRA_SIZE_PM_nofeb %>%
   group_by(YEAR, TAIL_BINS)%>%
   summarise(
     Mean_PM = mean(PER_DEAD, na.rm = TRUE),
@@ -223,7 +223,7 @@ summary_stats_size <- ICRA_SIZE_PM %>%
     N = n(), 
     .groups = "drop"
   )
-write.csv(summary_stats_size, "summary_stats_PM_by_size_Year.csv", row.names = FALSE)
+#write.csv(summary_stats_size, "summary_stats_PM_by_size_Year.csv", row.names = FALSE)
 
 #correct order
 summary_stats_size$TAIL_BINS <- factor(summary_stats_size$TAIL_BINS, 

@@ -37,11 +37,22 @@ ncrmp %>%
 #  2023        5      116
 
 #Calculate quintiles of pre-bleaching year data to assign size classes 
+#log transorm colony length, check normality
+ncrmp$logCOLONYLENGTH = log(ncrmp$COLONYLENGTH)
+
+shapiro.test(ncrmp$logCOLONYLENGTH)
+#W = 0.98347, p-value = 0.002419
+
+#q1<- data.frame(quantile(ncrmp$logCOLONYLENGTH, probs =  c(20,80)/100, na.rm = FALSE, names = TRUE, type = 9, digits = 4))
+
 q<- data.frame(quantile(ncrmp$COLONYLENGTH, probs =  c(20,80)/100, na.rm = FALSE, names = TRUE, type = 9, digits = 4))
 #(5-12 cm = "small", >40 = "brood stock")
 
 #add quintiles to dataframe in new column TAIL_BINS
+#ncrmp$logTAIL_BINS=cut(ncrmp$logCOLONYLENGTH,c(-Inf,q1[1,1],q1[2,1],Inf),labels=c('Q20','QMED','Q80'))
 ncrmp$TAIL_BINS=cut(ncrmp$COLONYLENGTH,c(-Inf,q[1,1],q[2,1],Inf),labels=c('Q20','QMED','Q80'))
+
+#tail bins were the same log tansforming or not. 
 
 #write.csv(ncrmp, "NCRMP_COlony_level_TUT_filtered.csv")
 

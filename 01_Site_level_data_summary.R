@@ -16,7 +16,7 @@ library(broom.mixed)
 library(tidyverse)
 
 load("data/ALL_COLONY_DENSITY.RData")
-load("data/SOUTH_COLONY_DENSITY_filtered.RData") #does not have north sites or Feb 2025 sites
+load("data/SOUTH_COLONY_DENSITY_filtered.RData") #does not have north sites or Feb 2025 sites. Removed the largest corals in 2025.
 load("data/FEB_SOUTH_COLONY_DENSITY.RData") #includes feb 2025 sites
 
 # set colors
@@ -52,6 +52,8 @@ summary_by_year_and_total <- SOUTH_COLONY_DENSITY_filtered %>%
     zeros = sum(adjusted_density == 0),
     mean_den = mean(adjusted_density, na.rm = TRUE),
     sd_density = sd(adjusted_density, na.rm = TRUE),
+    CI_Lower = mean_den - qt(0.975, df = n()-1) * sd_density / sqrt(n()),
+    CI_Upper = mean_den + qt(0.975, df = n()-1) * sd_density / sqrt(n()),
     .groups = "drop"
   ) 
 #YEAR non_na_count na_count zeros  mean_den sd_density
@@ -60,7 +62,7 @@ summary_by_year_and_total <- SOUTH_COLONY_DENSITY_filtered %>%
 #3  2023           29        0    18    0.620      1.71   #11 sites 
 #4  2025           15        0     3    0.618      0.896  #12 sites  were >0
 
-#how many sites were counted density in south only
+#how many sites were counted density in south only (this includes feb data, not using in paper)
 summary_by_year_and_total1 <- south_den1 %>%
   group_by(YEAR) %>%
   summarise(

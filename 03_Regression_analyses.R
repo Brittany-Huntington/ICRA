@@ -24,30 +24,32 @@ column_names_df <- data.frame(column_names)
 
 #view just the 1 year variables
 yr01_columns <- column_names[grepl("_YR01$", column_names)]
+yr01_columns_df<- data.frame(yr01_columns)
 non_zero_yr01_columns <- yr01_columns[colSums(eds[, yr01_columns] != 0) > 0]
 print(non_zero_yr01_columns)
 
 #subset variables you want to use:
-sub <- eds %>%
+sub_eds <- eds %>%
   select(SITE,
     lat,
     DHW_Mean = DHW.MeanMax_Degree_Heating_Weeks_jplMUR_Daily_YR01,
-    DHW_Mean_Major = DHW.MeanMax_Major_Degree_Heating_Weeks_jplMUR_Daily_YR01,
+    DHW_MeanMax_Major = DHW.MeanMax_Major_Degree_Heating_Weeks_jplMUR_Daily_YR01,
     DHW_Dur = DHW.MeanDur_Degree_Heating_Weeks_jplMUR_Daily_YR01,
     DHW_Dur_Major = DHW.MeanDur_Major_Degree_Heating_Weeks_jplMUR_Daily_YR01,
     DHW_Max_Major = DHW.MaxMax_Major_Degree_Heating_Weeks_jplMUR_Daily_YR01,
-    DHW_Mean_CRW = DHW.MeanMax_Degree_Heating_Weeks_CRW_Daily_YR01,
-    DHW_Mean_Major_CRW = DHW.MeanMax_Major_Degree_Heating_Weeks_CRW_Daily_YR01,
-    DHW_Dur_CRW = DHW.MeanDur_Degree_Heating_Weeks_CRW_Daily_YR01,
-    DHW_Dur_Major_CRW = DHW.MeanDur_Major_Degree_Heating_Weeks_CRW_Daily_YR01,
-    DHW_Max_Major_CRW = DHW.MaxMax_Major_Degree_Heating_Weeks_CRW_Daily_YR01,
-    SST_AnnRange_CRW = mean_annual_range_Sea_Surface_Temperature_CRW_Daily_YR01,
-    SST_MonthRange_CRW = mean_monthly_range_Sea_Surface_Temperature_CRW_Daily_YR01,
-    SST_Mean_CRW = mean_Sea_Surface_Temperature_CRW_Daily_YR01,
-    SST_Q05_CRW = q05_Sea_Surface_Temperature_CRW_Daily_YR01,
-    SST_Q95_CRW = q95_Sea_Surface_Temperature_CRW_Daily_YR01,
-    SST_SD_CRW = sd_Sea_Surface_Temperature_CRW_Daily_YR01,
-    SST_BiweekRange_CRW = mean_biweekly_range_Sea_Surface_Temperature_CRW_Daily_YR01,
+    DHW_Max_Major5 = DHW.MaxMax_Major_Degree_Heating_Weeks_jplMUR_Daily_YR10,
+    # DHW_Mean_CRW = DHW.MeanMax_Degree_Heating_Weeks_CRW_Daily_YR01,
+    # DHW_Mean_Major_CRW = DHW.MeanMax_Major_Degree_Heating_Weeks_CRW_Daily_YR01,
+    # DHW_Dur_CRW = DHW.MeanDur_Degree_Heating_Weeks_CRW_Daily_YR01,
+    # DHW_Dur_Major_CRW = DHW.MeanDur_Major_Degree_Heating_Weeks_CRW_Daily_YR01,
+    # DHW_Max_Major_CRW = DHW.MaxMax_Major_Degree_Heating_Weeks_CRW_Daily_YR01,
+    # SST_AnnRange_CRW = mean_annual_range_Sea_Surface_Temperature_CRW_Daily_YR01,
+    # SST_MonthRange_CRW = mean_monthly_range_Sea_Surface_Temperature_CRW_Daily_YR01,
+    # SST_Mean_CRW = mean_Sea_Surface_Temperature_CRW_Daily_YR01,
+    # SST_Q05_CRW = q05_Sea_Surface_Temperature_CRW_Daily_YR01,
+    # SST_Q95_CRW = q95_Sea_Surface_Temperature_CRW_Daily_YR01,
+    # SST_SD_CRW = sd_Sea_Surface_Temperature_CRW_Daily_YR01,
+    # SST_BiweekRange_CRW = mean_biweekly_range_Sea_Surface_Temperature_CRW_Daily_YR01,
     SST_AnnRange = mean_annual_range_Sea_Surface_Temperature_jplMUR_Daily_YR01,
     SST_MonthRange = mean_monthly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01,
     SST_Mean = mean_Sea_Surface_Temperature_jplMUR_Daily_YR01,
@@ -60,7 +62,7 @@ sub <- eds %>%
 
 
 
-sub_numeric <- sub %>%
+sub_numeric <- sub_eds %>%
   select(where(is.numeric))
 
 #make a matrix
@@ -73,7 +75,7 @@ M <- cor(sub_numeric_matrix, use = "pairwise.complete.obs") #pearsons
 corrplot(M, tl.col="black", tl.cex = 0.5, type = 'upper') #correlation plot showing the correlation coefficient
 res1 <- cor.mtest(sub_numeric_matrix, conf.level = 0.95)
 
-png("plots/jpl_vs_CRW_correlations.png", width = 1800, height = 1600, res = 300)
+#png("plots/jpl_correlations.png", width = 1800, height = 1600, res = 300)
 corrplot(M, p.mat = res1$p, 
          sig.level = 0.05, 
          #insig = "p-value", # if you want to print nonsig pvalues
@@ -87,7 +89,7 @@ corrplot(M, p.mat = res1$p,
 dev.off()
 #combining correlogram with the significance test
 #save
-png("plots/SST_comparison_corrplot_output.png")
+#png("plots/jpl_corrplot_output.png")
 par(mar = c(10, 4, 4, 2)) 
 # Generate the correlation plot
 corrplot(M, p.mat = res1$p, 
@@ -110,11 +112,11 @@ p_values <- as.data.frame(as.table(res1$p))
 cor_p_table <- merge(cor_matrix, p_values, by = c("Var1", "Var2"))
 names(cor_p_table) <- c("Var1", "Var2", "Correlation", "P_Value")
 
-write.csv(cor_p_table, "correlations.csv", row.names = FALSE)
+#write.csv(cor_p_table, "correlations.csv", row.names = FALSE)
 
 
-significant_correlations <- cor_p_table[cor_p_table$P_Value < 0.05 & cor_p_table$Var1 != cor_p_table$Var2, ]
-write.csv(significant_correlations, "significant_correlations.csv", row.names = FALSE)
+#significant_correlations <- cor_p_table[cor_p_table$P_Value < 0.05 & cor_p_table$Var1 != cor_p_table$Var2, ]
+#write.csv(significant_correlations, "significant_correlations.csv", row.names = FALSE)
 
 #Courtney did this:
 #Testing for Multicolinarity
@@ -132,20 +134,20 @@ write.csv(significant_correlations, "significant_correlations.csv", row.names = 
 
 #######################################################################################
 #make a df / csv of the variables you want to use in the analysis. EDIT THIS
-use_sub<- sub %>%
+use_sub<- sub_eds %>%
   select(SITE,
          #lat,
          DHW_Mean,
-         #DHW_Mean_Major,
-         #DHW_Dur,
+         #DHW_MeanMax_Major,
+         DHW_Dur,
          #DHW_Dur_Major,
          #DHW_Max_Major,
-         SST_AnnRange,
+         #SST_AnnRange,
          #SST_MonthRange,
          #SST_Mean,
          #SST_Q05,
          #SST_Q95,
-         SST_SD,
+         #SST_SD,
          #SST_BiweekRange
          
   ) 
@@ -162,15 +164,17 @@ merged_PM_colony <- use_sub %>%
 #subset by tailbin
 small<- merged_PM_colony %>%
   filter (TAIL_BINS == "Q20")
+write.csv(small, "small_ICRA.csv") 
 
 med<- merged_PM_colony %>%
   filter (TAIL_BINS == "QMED")
+write.csv(med, "med_ICRA.csv") 
 
 large<- merged_PM_colony %>%
   filter (TAIL_BINS == "Q80")
+write.csv(large, "large_ICRA.csv") 
 
-
-#define and scale preds
+#define and scale predictors
 preds <- use_sub %>%
   select(-SITE) %>%
   scale(center = TRUE, scale = TRUE)
@@ -190,28 +194,49 @@ large.df <- large %>%
 
 graphics.off()
 
-#quick plots of predictors. 
-par(mfrow=c(1,1))
-plot(small$PER_DEAD~small$DHW_Mean)
-plot(small$PER_DEAD~small$SST_AnnRange)
-plot(small$PER_DEAD~small$SST_SD)
+#quick plots of predictors and prop dead
 
-plot(med$PER_DEAD~med$DHW_Mean)
-plot(med$PER_DEAD~med$SST_AnnRange)
-plot(med$PER_DEAD~med$SST_SD)
+predictors <- c("DHW_MeanMax_Major", "SST_Mean", "SST_BiweekRange" )
+groups <- list(small = small, med = med, large = large)
+response<- "prop_DEAD"
 
+for (df_name in names(groups)) {
+  df <- groups[[df_name]]
+  
+  par(mfrow = c(2, 3))  #
+  
+  for (pred in predictors) {
+    # Check if the predictor exists in the data frame
+    if (pred %in% names(df)) {
+      plot(df[[response]] ~ df[[pred]], 
+           main = paste(df_name, ":", response, "~", pred),
+           xlab = pred,
+           ylab = response)
+    }
+  }
+}
 
-plot(large$PER_DEAD~large$DHW_Mean)
-plot(large$PER_DEAD~large$SST_AnnRange)
-plot(large$PER_DEAD~large$SST_SD)
+#original. made this into above loop.
+# par(mfrow=c(1,1))
+# plot(small$PER_DEAD~small$DHW_MeanMax_Major)
+# plot(small$PER_DEAD~small$SST_MonthRange)
+# plot(small$PER_DEAD~small$SST_Mean)
+# plot(small$PER_DEAD~small$SST_SD)
+# plot(small$PER_DEAD~small$SST_BiweekRange)
+# 
+# plot(med$PER_DEAD~med$DHW_MeanMax_Major)
+# plot(med$PER_DEAD~med$SST_AnnRange)
+# plot(med$PER_DEAD~med$SST_SD)
+# 
+# 
+# plot(large$PER_DEAD~large$DHW_Mean)
+# plot(large$PER_DEAD~large$SST_AnnRange)
+# plot(large$PER_DEAD~large$SST_SD)
 
 #predictors correspond to site and there are many response variables (coloniy % dead) per site... 
 ##########################
 # look at jittered points#
 ##########################
-predictors <- c("DHW_Mean", "SST_AnnRange", "SST_SD")
-
-groups <- list(small = small, med = med, large = large)
 
 par(mfrow = c(2, 3))
 
@@ -220,10 +245,10 @@ for (group_name in names(groups)) {
   group_data <- groups[[group_name]]
   
   for (pred in predictors) {
-    plot(jitter(group_data[[pred]], amount = 0.1), group_data$PER_DEAD,
-         main = paste(group_name, ":", pred, "vs PER_DEAD"),
+    plot(jitter(group_data[[pred]], amount = 0.1), group_data$prop_DEAD,
+         main = paste(group_name, ":", pred, "vs prop_DEAD"),
          xlab = paste(pred, "(jittered)"),
-         ylab = "PER_DEAD")
+         ylab = "prop_DEAD")
   }
 }
 
@@ -234,7 +259,7 @@ for (group_name in names(groups)) {
 # Stack the data into long format
 long_data <- lapply(predictors, function(var) {
   merged_PM_colony %>%
-    select(PER_DEAD, TAIL_BINS, !!sym(var)) %>%
+    select(prop_DEAD, TAIL_BINS, !!sym(var)) %>%
     rename(PredictorValue = !!sym(var)) %>%
     mutate(Predictor = var)
 }) %>%
@@ -242,32 +267,80 @@ long_data <- lapply(predictors, function(var) {
 
 agg_data <- long_data %>%
   group_by(Predictor, PredictorValue, TAIL_BINS) %>%
-  summarise(Mean_PER_DEAD = mean(PER_DEAD, na.rm = TRUE), .groups = "drop")
+  summarise(Mean_prop_DEAD = mean(prop_DEAD, na.rm = TRUE), .groups = "drop")
 
-ggplot(agg_data, aes(x = PredictorValue, y = Mean_PER_DEAD)) +
+ggplot(agg_data, aes(x = PredictorValue, y = Mean_prop_DEAD)) +
   geom_line(aes(color = TAIL_BINS), size = 1) +
   #geom_smooth(aes(color = TAIL_BINS), method = "loess", se = FALSE)
   geom_point(aes(color = TAIL_BINS)) +
   facet_wrap(~ Predictor, scales = "free_x") +
-  labs(x = "Predictor Value", y = "Mean % Dead Coral (PER_DEAD)",
-       title = "PER_DEAD vs Predictor by Size Class") +
+  labs(x = "Predictor Value", y = "Mean prop Dead Coral",
+       title = "prop_DEAD vs Predictor by Size Class") +
   theme_minimal()
 
-
-#if here is nonlinearity, test polynomial fit
-#d: Linear effect of depth
+##############################################
+#if here is nonlinearity, test polynomial fit#
+##############################################
+#d: Linear effect 
 #d_poly2: Quadratic relationship (e.g., hump-shaped)
 #d_poly3: Cubic relationship (allows for more bends in the curve)
+
+#updated code to a loop
+predictor_vars <- list(
+  small = "scaled_DHW_MeanMax_Major",
+  med = "scaled_DHW_Mean",
+  large = "scaled_DHW_Mean"
+)
+
+small.df$scaled_DHW_MeanMax_Major <- scale(small.df$DHW_MeanMax_Major)
+med.df$scaled_DHW_Mean <- scale(med.df$DHW_Mean)
+large.df$scaled_DHW_Mean <- scale(large.df$DHW_Mean)
+
+groups <- list(small = small.df, med = med.df, large = large.df)
+response<- "prop_DEAD"
+
+############# not working for other than small###########################
+for (group_name in names(groups)) {
+  df <- groups[[group_name]]
+  
+  cat("\n==============", toupper(group_name), "==============\n")
+  
+  for (predictor in predictors) {
+    if (!(predictor %in% names(df))) {
+      cat("\nSkipping", predictor, "- not in", group_name, "\n")
+      next
+    }
+    
+    # Formulas
+    f1 <- as.formula(paste(response, "~ poly(", predictor, ", 1, raw = TRUE)"))
+    f2 <- as.formula(paste(response, "~ poly(", predictor, ", 2, raw = TRUE)"))
+    f3 <- as.formula(paste(response, "~ poly(", predictor, ", 3, raw = TRUE)"))
+    
+    # Fit models
+    m1 <- betareg(f1, data = df)
+    m2 <- betareg(f2, data = df)
+    m3 <- betareg(f3, data = df)
+    
+    # Report
+    cat("\n>>> Predictor:", predictor, "\n")
+    print(lrtest(m1, m2, m3))
+    cat("AIC values:\n")
+    cat("  poly1:", AIC(m1), "\n")
+    cat("  poly2:", AIC(m2), "\n")
+    cat("  poly3:", AIC(m3), "\n")
+  }
+}
 
 ###############
 ##small#######
 ###############
-d_poly3 <- betareg(prop_DEAD ~ poly(scaled_DHW_Mean, 3, raw = TRUE), 
+#update this to a loop
+d_poly3 <- betareg(prop_DEAD ~ poly(scaled_DHW_MeanMax_Major, 3, raw = TRUE), 
                      data = small.df)
 
-d_poly2 <- betareg(prop_DEAD ~ poly(scaled_DHW_Mean, 2, raw = TRUE), 
+d_poly2 <- betareg(prop_DEAD ~ poly(scaled_DHW_MeanMax_Major, 2, raw = TRUE), 
                      data = small.df)
-d <- betareg(prop_DEAD ~ poly(scaled_DHW_Mean, raw = TRUE), 
+d <- betareg(prop_DEAD ~ poly(scaled_DHW_MeanMax_Major, raw = TRUE), 
                         data = small.df)
 lrtest(d, d_poly2, d_poly3) 
 
@@ -279,12 +352,12 @@ AIC(d)
 ###############
 ##### med #####
 ###############
-d_poly3 <- betareg(prop_DEAD ~ poly(scaled_DHW_Mean, 3, raw = TRUE), 
+d_poly3 <- betareg(prop_DEAD ~ poly(scaled_DHW_MeanMax_Major, 3, raw = TRUE), 
                    data = med.df)
 
-d_poly2 <- betareg(prop_DEAD ~ poly(scaled_DHW_Mean, 2, raw = TRUE), 
+d_poly2 <- betareg(prop_DEAD ~ poly(scaled_DHW_MeanMax_Major, 2, raw = TRUE), 
                    data = med.df)
-d <- betareg(prop_DEAD ~ poly(scaled_DHW_Mean, raw = TRUE), 
+d <- betareg(prop_DEAD ~ poly(scaled_DHW_MeanMax_Major, raw = TRUE), 
              data = med.df)
 lrtest(d, d_poly2, d_poly3) 
 
@@ -296,12 +369,12 @@ AIC(d)
 ###############
 #### large ####
 ###############
-d_poly3 <- betareg(prop_DEAD ~ poly(scaled_DHW_Mean, 3, raw = TRUE), 
+d_poly3 <- betareg(prop_DEAD ~ poly(scaled_DHW_MeanMax_Major, 3, raw = TRUE), 
                    data = large.df)
 
-d_poly2 <- betareg(prop_DEAD ~ poly(scaled_DHW_Mean, 2, raw = TRUE), 
+d_poly2 <- betareg(prop_DEAD ~ poly(scaled_DHW_MeanMax_Major, 2, raw = TRUE), 
                    data = large.df)
-d <- betareg(prop_DEAD ~ poly(scaled_DHW_Mean, raw = TRUE), 
+d <- betareg(prop_DEAD ~ poly(scaled_DHW_MeanMax_Major, raw = TRUE), 
              data = large.df)
 lrtest(d, d_poly2, d_poly3) 
 
@@ -309,6 +382,34 @@ AIC(d_poly3)
 AIC(d_poly2)
 AIC(d)
 # linear polynomial is best for large class
+
+d_poly3 <- betareg(prop_DEAD ~ poly(SST_Mean, 3, raw = TRUE), 
+                   data = large.df)
+
+d_poly2 <- betareg(prop_DEAD ~ poly(SST_Mean, 2, raw = TRUE), 
+                   data = large.df)
+d <- betareg(prop_DEAD ~ poly(SST_Mean, raw = TRUE), 
+             data = large.df)
+lrtest(d, d_poly2, d_poly3) 
+
+AIC(d_poly3)
+AIC(d_poly2)
+AIC(d)
+# didnt work
+
+d_poly3 <- betareg(prop_DEAD ~ poly(SST_BiweekRange, 3, raw = TRUE), 
+                   data = large.df)
+
+d_poly2 <- betareg(prop_DEAD ~ poly(SST_BiweekRange, 2, raw = TRUE), 
+                   data = large.df)
+d <- betareg(prop_DEAD ~ poly(SST_BiweekRange, raw = TRUE), 
+             data = large.df)
+lrtest(d, d_poly2, d_poly3) 
+
+AIC(d_poly3)
+AIC(d_poly2)
+AIC(d)
+# 
 
 
 ######################################################################
@@ -373,9 +474,9 @@ for (group_name in names(grouped_data)) {
       print(p)
     }, silent = TRUE)  # continue loop if model fails
   }
-}
-#########################################
-# now need to look @ coefficients########
+
+########################################
+# now need to look @ coefficients#######
 # Fit model with predictors#############
 ########################################
 model <- betareg(prop_DEAD ~ scaled_DHW_Mean + scaled_SST_AnnRange + scaled_SST_SD, data = small.df)
