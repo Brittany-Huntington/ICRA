@@ -12,6 +12,7 @@ load("data/eds_output.Rdata")
 load("data/ICRA_SIZE_PM_nofeb.RData")
 load("data/ICRA_PM_S_site2025.RData") #site-level PM summary of 2025 south
 load("data/ICRA_PM_S_colony2025.RData") #colony-level PM of 2025 south
+
 ICRA_PM<- ICRA_SIZE_PM_nofeb %>%
   mutate(prop_DEAD = PER_DEAD / 100)
 
@@ -166,7 +167,7 @@ write.csv(merged2025_PM_S_site, file ="merged2025_PM_S_site.csv")
 merged2025_PM_S_colony<-use_sub%>%
   left_join(ICRA_PM_S_colony_2025, by = "SITE")%>%
   filter(!is.na(PER_DEAD))
-write.csv(merged2025_PM_S_site, file ="merged2025_PM_S_colony.csv")  
+write.csv(merged2025_PM_S_colony, file ="merged2025_PM_S_colony.csv")  
 
 # merge with PM data at colony level.
 merged_PM_colony <- sub_eds %>%
