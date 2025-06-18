@@ -146,7 +146,7 @@ south_colonies_scaled <- south_colonies %>%
 colonies_site_model <- betareg(prop_PM_adj ~ scaled_DHW_Mean + scaled_DHW_Dur, data = south_colonies_scaled)
 summary(colonies_site_model)
 #model only explains 2% ov variance. But, 
-########DHW_Dur is strongly correlated w PM ###############
+######## DHW_Dur is strongly correlated w PM ###############
 
 colonies_site_model_x <- betareg(prop_PM_adj ~ scaled_DHW_Mean * scaled_DHW_Dur, data = south_colonies_scaled)
 summary(colonies_site_model_x)
@@ -176,7 +176,7 @@ march_colonies<-south_colonies_scaled%>%
 march_colonies_site_model <- betareg(prop_PM_adj ~ scaled_DHW_Mean + scaled_DHW_Dur, data = march_colonies)
 summary(march_colonies_site_model)
 
-#lose the effect
+#lost the effect
 
 
 ################################################
@@ -204,6 +204,19 @@ summary(large_colony_model)
 
 #####within large colonies, significant correlation of DHW_mean with PM############
 # others nothing.
+
+#look at residuals
+residuals_raw <- residuals(large_colonies, type = "response")
+residuals_pearson <- residuals(large_colonies, type = "pearson")
+residuals_rqr <- residuals(large_colonies, type = "quantile")# Randomized quantile residuals (recommended for beta regression)
+#add residuals to df
+large_colonies$residuals <- residuals_rqr
+
+ggplot(large_colonies, aes(x = scaled_DHW_Mean, y = residuals)) +
+  geom_point(alpha = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(x = "Scaled DHW Mean", y = "Randomized Quantile Residuals") +
+  theme_minimal()
 
 ##############################################################
 ###looking at March COLONY data w continuous SIZE interaction#
