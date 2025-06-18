@@ -122,16 +122,8 @@ save(ALL_ICRA_SIZE_PM, file ="data/All_ICRA_SIZE_PM.RData")
 #manually removed all ICRA data from north side of island in arcGIS. both are plotted in map script for transparency and visualization.
 SOUTH_COLONY_SIZE_PM<-read.csv("~/GitHub/ICRA/data/south_only_ICRA_Colony_level_data.csv")
 
-#site level data
-avg_PM <- SOUTH_COLONY_SIZE_PM %>%
-  filter(YEAR == 2025) %>%
-  group_by(SITE) %>%
-  summarise(
-    n = sum(!is.na(PER_DEAD))
-  )
-
-
 #identify corals outside the size range (<5cm or >116cm, to account for differences in survey methods in 2025 vs. ncrmp) (to update density dataset)
+#this automaticall excludes any feb data (sicne we didn't measure size)
 removed_data <- SOUTH_COLONY_SIZE_PM %>% 
   filter(!(as.numeric(COLONYLENGTH) > 4.9 )) %>%
   dplyr::select(SITE, COLONYLENGTH)
@@ -155,12 +147,11 @@ print(removed_summary)
 ICRA_SIZE_PM <- SOUTH_COLONY_SIZE_PM %>%
   filter(COLONYLENGTH >= 4.9 & COLONYLENGTH <= 116.1)
 
-
-
-save(ICRA_SIZE_PM, file ="data/ICRA_SIZE_PM.RData")
+save(ICRA_SIZE_PM, file ="data/ICRA_SIZE_PM.RData") #remember this has subset of 2025 data that were sized
 #write.csv(ICRA_SIZE_PM, "data/south_ICRA_Colony_level_data_filtered.csv", row.names = FALSE)
+
 #calculate average PM per site
-avg_PM_south<-ICRA_SIZE_PM%>%
+avg_PM_south2025_nofeb<-ICRA_SIZE_PM%>%
   filter(YEAR==2025)%>%
 group_by(SITE) %>%
   summarise(
@@ -169,30 +160,9 @@ group_by(SITE) %>%
     sd_PM = sd(PER_DEAD, na.rm = TRUE),
     max_PM = max(PER_DEAD, na.rm = TRUE)
   )
-write.csv
-#remove feb 2025 data (since colony sizes weren't taken)
-ICRA_SIZE_PM_nofeb<-ICRA_SIZE_PM%>%
-  mutate(
-    DATE_ = mdy(DATE_),      
-    month = month(DATE_)    
-  ) %>%
-  filter(month != 2) #don't inlcude feb
 
-save(ICRA_SIZE_PM_nofeb, file ="data/ICRA_SIZE_PM_nofeb.RData")
-write.csv(ICRA_SIZE_PM_nofeb, "data/south_ICRA_Colony_level_data_filtered_nofeb.csv", row.names = FALSE)
-
-#save(COLONY_SIZE_PM, file = "data/COLONY_SIZE_PM.RData")
-
-avg_PM_south_nofeb<-ICRA_SIZE_PM_nofeb%>%
-  filter(YEAR==2025)%>%
-  group_by(SITE) %>%
-  summarise(
-    n = sum(!is.na(PER_DEAD)),
-    mean_PM = mean(PER_DEAD, na.rm = TRUE),
-    sd_PM = sd(PER_DEAD, na.rm = TRUE),
-    max_PM = max(PER_DEAD, na.rm = TRUE)
-  )
-
+save(avg_PM_south2025_nofeb, file ="data/ICRA_2025_SIZE_PM_nofeb.RData")
+write.csv(avg_PM_south2025_nofeb, "data/south_ICRA_Colony_level_2025_data_filtered_nofeb.csv", row.names = FALSE)
 
 #########################################################################################################
 #Make dataframe based on corals measured w/i first 10mx2m of 2025 transects (to compare methods)
