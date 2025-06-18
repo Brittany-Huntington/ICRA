@@ -144,11 +144,11 @@ print(removed_summary)
 
 
 #remove those corals from dataset
-ICRA_SIZE_PM <- SOUTH_COLONY_SIZE_PM %>%
+ICRA_SIZE_PM_SOUTH_filtered <- SOUTH_COLONY_SIZE_PM %>%
   filter(COLONYLENGTH >= 4.9 & COLONYLENGTH <= 116.1)
 
-save(ICRA_SIZE_PM, file ="data/ICRA_SIZE_PM.RData") #remember this has subset of 2025 data that were sized
-#write.csv(ICRA_SIZE_PM, "data/south_ICRA_Colony_level_data_filtered.csv", row.names = FALSE)
+save(ICRA_SIZE_PM_SOUTH_filtered, file ="data/ICRA_SIZE_PM_SOUTH_sizefiltered.RData") #remember this has subset of 2025 data that were sized
+write.csv(ICRA_SIZE_PM_SOUTH_filtered, "data/south_ICRA_Colony_level_data_sizefiltered.csv", row.names = FALSE)
 
 #calculate average PM per site
 avg_PM_south2025_nofeb<-ICRA_SIZE_PM%>%
