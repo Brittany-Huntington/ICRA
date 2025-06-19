@@ -19,8 +19,7 @@ ICRA_PM<- ICRA_SIZE_PM_nofeb %>%
 select = dplyr::select
 rename  = dplyr::rename
 
-
-
+#subset 2025 from eds
 #save the colnames as a file for ease in viewing variable names
 column_names <- colnames(eds)
 column_names_df <- data.frame(column_names)
@@ -30,6 +29,10 @@ yr01_columns <- column_names[grepl("_YR01$", column_names)]
 yr01_columns_df<- data.frame(yr01_columns)
 non_zero_yr01_columns <- yr01_columns[colSums(eds[, yr01_columns] != 0) > 0]
 print(non_zero_yr01_columns)
+
+#subset 2025, YR01 data
+eds_yr01 <- eds %>%
+  select(ID, SITE, everything(), ends_with("_YR01"))
 
 #subset variables you want to use:
 sub_eds <- eds %>%
@@ -174,6 +177,25 @@ merged_PM_colony <- sub_eds %>%
   left_join(ICRA_PM, by = "SITE")%>%
   #select(-lon, -Area_surveyed_m2, -COLONYLENGTH, -LATITUDE, -LONGITUDE, MAX_DEPTH_M)%>%
   drop_na(PER_DEAD)
+
+#merged_PM_colony <- sub_eds %>%
+left_join(ICRA_PM, by = "SITE")%>%
+  #select(-lon, -Area_surveyed_m2, -COLONYLENGTH, -LATITUDE, -LONGITUDE, MAX_DEPTH_M)%>%
+  drop_na(PER_DEAD)
+
+#subset all YR01 vars from eds with 2025 
+merged_PM_colony_all_YR01 <- eds %>%
+  select(SITE, ends_with("_YR01")) %>%       # Keep SITE + only _YR01 columns
+  left_join(ICRA_PM_S_colony_2025, by = "SITE") %>%
+  drop_na(PER_DEAD)
+write.csv(merged_PM_colony_all_YR01, "merged_PM_colony_all_YR01.csv")
+
+#subset all YR01 vars from eds with 2025 
+merged_PM_site_all_YR01 <- eds %>%
+  select(SITE, ends_with("_YR01")) %>%       # Keep SITE + only _YR01 columns
+  left_join(ICRA_PM_S_site_2025, by = "SITE") %>%
+  drop_na(mean_PM)
+write.csv(merged_PM_site_all_YR01, "merged_PM_site_all_YR01.csv")
 
 #subset by tailbin
 small<- merged_PM_colony %>%
