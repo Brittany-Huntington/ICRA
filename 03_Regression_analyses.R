@@ -39,14 +39,14 @@ large<-large%>%
          prop_mean_PM_adj = (prop_mean_PM * (n - 1) + 0.5) / n)
 
 small_model_glmm <- glmmTMB(
-  prop_mean_PM_adj ~ (scaled_DHW_Mean + scaled_DHW_Dur) #+ (1 | SITE),
+  prop_mean_PM_adj ~ (scaled_DHW_Mean + scaled_DHW_Dur), #+ (1 | SITE),
   data = small,
   family = beta_family()
 )
 
 
 med_model_glmm <- glmmTMB(
-  prop_mean_PM_adj ~ (scaled_DHW_Mean + scaled_DHW_Dur) #+ (1 | SITE),
+  prop_mean_PM_adj ~ (scaled_DHW_Mean + scaled_DHW_Dur), #+ (1 | SITE),
   data = med,
   family = beta_family()
 )
@@ -104,6 +104,7 @@ site_model <- glmmTMB(
   family = beta_family()
 )
 summary(site_model)
+
 #not significant
 
 #linear model
@@ -414,9 +415,9 @@ colony_model_by_class<-betareg(prop_PM_adj ~ (scaled_DHW_Mean + scaled_DHW_Dur) 
 #IN SUMMARY
 #when 
 
-###################################################################################
+#######################################################################################
 ### 9. looking at March COLONY data by discrete SIZE CLASS interaction with colonysize#
-###################################################################################
+#######################################################################################
 
 small_colonies<-south_colonies_scaled%>%
   filter(TAIL_BINS=="Q20")
@@ -448,5 +449,31 @@ large_colony_modelcont<- glmmTMB(
 summary(small_colony_modelcont)
 summary(med_colony_modelcont)
 summary(large_colony_modelcont)
+
+#######################################################################################
+### 10. looking at March site data by discrete SIZE CLASS #
+#######################################################################################
+
+# test you can run for overparameterization
+# (B) Beta regression models including size class across all southern ICRA sites from 2025 (n=11).
+# Model: glmmTMB(mean_PM ~ SST_mean * TAIL_BINS + SST_range * TAIL_BINS, data = rv_size, family = beta_family(link = "logit"))
+# 
+# 
+# Mean PM (%):  significant interaction for MED colonies with SST_mean
+# SST_Mean*MED (coef = 27.2, p = 0.023) <- this and the other sizes look 
+# partial residual plot. significant interaction term combo of continuous and catagorical variable. 
+# still run similar partial residual plot code. hold interaction of SST range and binned range constant at sst range. run 3 chunks of code for small med large.
+# 1 plots, not parameter estimates, one like britt made. 
+# table and corrected estimate plot. change y axis for predicted partial mortality (instead of PM)
+# menition DHW was correlated with SST
+# holding range constant look at SST * small, SST* med, SST*large. 
+# run dharma
+
+
+#MEETING step through code, table 3 . map from kisei
+# do we need to officially archive 2025 data now if we have data summary in github data folder
+# look into endangered spp journal. couple sentences about recovery planning in discussion
+# ask tom if wants to be on this paper, if yes, can he make time to read it? As RPTS editor?
+# send courtney coefficient plot. since categorical.
 
 
