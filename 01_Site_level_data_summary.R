@@ -25,7 +25,7 @@ print(vir_colors)
 custom_colors <- vir_colors
 custom_colors[4] <- "gold"  # DAA520 goldenrod 
 
-#how many sites were counted for density 
+#how many sites were counted for density IN ALL
 summary_by_year_and_total_all <- ALL_COLONY_DENSITY %>%
   group_by(YEAR) %>%
   summarise(
@@ -74,7 +74,7 @@ summary_by_year_and_total1 <- south_den1 %>%
     .groups = "drop"
   ) 
 #YEAR non_na_count na_count zeros
-#1    2015           35        0    23    0.151      0.359 #12
+#1  2015           35        0    23    0.151      0.359 #12
 #2  2018           10        0     8    0.44       1.17    #2
 #3  2023           29        0    18    0.620      1.71    #11
 #4  2025           42        0     11    0.391      0.775  #32 sites 
@@ -113,17 +113,40 @@ dunn_results_feb <- south_den1 %>%
   dunn_test(DENSITY ~ YEAR, p.adjust.method = "bonferroni")
 #difference between 2015 and 2025(p=0.00741, padj = 0.0445) 
 
-#Due to different site numbers in 2025, can bootstrap all data besides 2018 to 10 (# sites in 2018, the lowest).
+#Due to different site numbers in 2025, could bootstrap all data besides 2018 to 10 (# sites in 2018, the lowest).
 
 ggplot(SOUTH_COLONY_DENSITY_filtered, aes(x = as.factor(YEAR), y = adjusted_density, fill = YEAR)) +
   geom_boxplot() +
   geom_jitter(width = 0.2, alpha = 0.4, size = 1) +
   theme_minimal()
 
-ggplot(SOUTH_COLONY_DENSITY_filtered, aes(x = as.factor(YEAR), y = log(adjusted_density), fill = YEAR)) +
+SOUTH_COLONY_DENSITY_filtered<-SOUTH_COLONY_DENSITY_filtered%>%
+mutate(adjusted_density_log = log10(adjusted_density + 1e-4))
+
+ggplot(SOUTH_COLONY_DENSITY_filtered, aes(x = as.factor(YEAR), y = adjusted_density_log, fill = YEAR)) +
   geom_boxplot() +
   geom_jitter(width = 0.2, alpha = 0.4, size = 1) +
   theme_minimal()
+
+ggplot(SOUTH_COLONY_DENSITY_filtered, aes(x = as.factor(YEAR), y = adjusted_density, fill = as.factor(YEAR))) +
+  geom_boxplot() +
+  #geom_jitter(width = 0.2, alpha = 0.4, size = 1) +
+  scale_y_log10() +
+  ylab("Adjusted Density (log₁₀ scale)") +
+  theme_minimal()+
+  scale_fill_manual(values = custom_colors)
+ggsave("plots/logden_boxplot_south_nofebfiltered.svg")
+
+svglite("plots/my_plot.svg", width = 3, height = 4)
+ggplot(SOUTH_COLONY_DENSITY_filtered, aes(x = as.factor(YEAR), y = adjusted_density, fill = as.factor(YEAR))) +
+  geom_boxplot() +
+  #geom_jitter(width = 0.2, alpha = 0.4, size = 1) +
+  scale_y_log10() +
+  ylab("Adjusted Density (log₁₀ scale)") +
+  theme_minimal()+
+  theme(panel.grid = element_blank())+
+  scale_fill_manual(values = custom_colors)
+dev.off()
 
 
 #########################################
@@ -226,6 +249,18 @@ mean_sd_den_per_year_site_no <- SOUTH_COLONY_DENSITY_filtered %>%
     .groups = "drop"
   )
 
+mean_sd_den_per_year_site_w0 <- SOUTH_COLONY_DENSITY_filtered %>%
+  group_by(YEAR) %>%
+  summarise(
+    mean_den = mean(adjusted_density),
+    sd_density = sd(adjusted_density),
+    n = sum(!is.na(DENSITY)),
+    se = sd_density / sqrt(n),
+    lower_CI = mean_den - qt(0.975, df = n - 1) * se,
+    upper_CI = mean_den + qt(0.975, df = n - 1) * se,
+    .groups = "drop"
+  )
+
 mean_sd_den_per_year_site_all <- ALL_COLONY_DENSITY %>%
   group_by(YEAR) %>%
   summarise(
@@ -239,19 +274,36 @@ mean_sd_den_per_year_site_all <- ALL_COLONY_DENSITY %>%
   )
 
 # make a bar plot
-ggplot(mean_sd_den_per_year_site_no, aes(x = as.factor(YEAR), y = mean_den, fill=as.factor(YEAR))) +
-  geom_bar(stat = "identity", width = 0.5) +
+
+svglite("plots/raw_density_barplotCI.svg", width = 4, height = 6)
+ggplot(mean_sd_den_per_year_site_w0, aes(x = as.factor(YEAR), y = mean_den, fill=as.factor(YEAR))) +
+  geom_bar(stat = "identity", width = 0.8) +
   geom_errorbar(aes(
     ymin = pmax(lower_CI, 0),
     ymax = upper_CI
   ), width = 0.25)+
 #geom_errorbar(aes(
-    #ymin = pmax(mean_den - sd_density, 0),   # Prevent error bars from going below zero
-    #ymax = mean_den + sd_density), width = 0.25) +
-  labs(x = "Year", y = "Mean Density ± CI", title = "South only, no Feb, average density per Year") +
+    # ymin = pmax(mean_den - sd_density, 0),   # Prevent error bars from going below zero
+    # ymax = mean_den + sd_density), width = 0.25) +
+  labs(x = "Year", y = "Mean Density ± CI") +
   theme_minimal()+
+  theme(
+    panel.grid = element_blank(), 
+    #panel.border = element_rect(color = "black", size = 1),  
+    axis.text.x = element_text(size = 16),  
+    axis.text.y = element_text(size = 16),  
+    axis.title = element_text(size = 18),  
+    text = element_text(size = 14),  
+    plot.title = element_text(hjust = 0.5),  
+    legend.position = "none",  
+    legend.key.size = unit(0.6, "cm"),
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 16)
+  ) +
+  scale_x_discrete(expand = expansion(mult = c(0.1, 0.1)))+
   scale_fill_manual(values = custom_colors)
-ggsave("plots/den_boxplot_south_nofeb.png")
+dev.off()
+ggsave("plots/den_boxplot_south_nofeb_rawCI.png", width = 4, height = 6, dpi = 300)
 
 #with feb data
 ggplot(mean_sd_den_per_year_site_feb, aes(x = as.factor(YEAR), y = mean_den, fill=as.factor(YEAR))) +
@@ -260,7 +312,7 @@ ggplot(mean_sd_den_per_year_site_feb, aes(x = as.factor(YEAR), y = mean_den, fil
     ymin = pmax(lower_CI, 0),
     ymax = upper_CI
   ), width = 0.25)+
-  labs(x = "Year", y = "Mean Density ± CI", title = "With Feb, south only average density") +
+  labs(x = "Year", y = "Mean Density ± CI") +
   theme_minimal()+
   scale_fill_manual(values = custom_colors)
 ggsave("plots/den_boxplot_south_wfeb.png")
