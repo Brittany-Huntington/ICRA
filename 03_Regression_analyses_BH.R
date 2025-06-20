@@ -46,8 +46,7 @@ range(rv_size$mean_PM)
 range(rv_size$prev_PM_10)
 range(rv_size$prev_PM_20)
 
-
-#adjust ranges to fall between 0-100
+#adjust ranges to fall between 0-1
 rv_size$mean_PM[rv_size$mean_PM == 0] <- rv_size$mean_PM[rv_size$mean_PM == 0] + 0.01
 rv_size$mean_PM[rv_size$mean_PM == 1] <- rv_size$mean_PM[rv_size$mean_PM == 1] - 0.01
 rv_size$prev_PM_10[rv_size$prev_PM_10 == 0] <- rv_size$prev_PM_10[rv_size$prev_PM_10 == 0] + 0.01
@@ -69,13 +68,15 @@ range(rv$mean_PM)
 range(rv$prev_PM_10)
 range(rv$prev_PM_20)
 
-#adjust ranges to fall between 0-100
+#adjust ranges to fall between 0-1
 rv$mean_PM[rv$mean_PM == 0] <- rv$mean_PM[rv$mean_PM == 0] + 0.01
 rv$mean_PM[rv$mean_PM == 1] <- rv$mean_PM[rv$mean_PM == 1] - 0.01
 rv$prev_PM_10[rv$prev_PM_10 == 0] <- rv$prev_PM_10[rv$prev_PM_10 == 0] + 0.01
 rv$prev_PM_10[rv$prev_PM_10 == 1] <- rv$prev_PM_10[rv$prev_PM_10 == 1] - 0.01
 rv$prev_PM_20[rv$prev_PM_20 == 0] <- rv$prev_PM_20[rv$prev_PM_20 == 0] + 0.01
 rv$prev_PM_20[rv$prev_PM_20 == 1] <- rv$prev_PM_20[rv$prev_PM_20 == 1] - 0.01
+
+
 
 
 ####LOAD DRIVER VARIABLES @ SITE LEVEL--------------
@@ -95,7 +96,7 @@ rv_size <-  left_join(rv_size,dat)
 
 ####BETA REGRESSION--------------
 
-#Run #1: build model without size class across all 31 southern ICRA sites from 2025----
+#Run A: build model without size class across all 31 southern ICRA sites from 2025----
 # mean PM
 bm1 <- betareg(mean_PM ~ DHW_Mean + DHW_Dur, data = rv)
 bmnull <- betareg(mean_PM ~ 1, data = rv)
@@ -126,7 +127,7 @@ lrtest(bm1, bmnull)
 AIC(bm1, bmnull, lm1) #betareg is better fit than linear model
 
 
-#Run #2: build model with 2 fixed effects plus using size bin as an interactive effect----
+#Run B: build model with 2 fixed effects plus using size bin as an interactive effect----
 
 # mean PM
 glm.1 <- glmmTMB(mean_PM ~ DHW_Mean * TAIL_BINS + DHW_Dur * TAIL_BINS, data = rv_size, family = beta_family(link = "logit"))
@@ -143,7 +144,7 @@ glm.3 <- glmmTMB(prev_PM_20 ~ DHW_Mean * TAIL_BINS + DHW_Dur * TAIL_BINS, data =
 summary(glm.3)
 
 
-#Run #3: subsetting by size class first and then running beta regression----
+#Run C: subsetting by size class first and then running beta regression----
 
 rv_list <- split(rv_size, rv_size$TAIL_BINS) #subset dataframe by size bin
 
@@ -181,6 +182,34 @@ bm3 <- betareg(prev_PM_20 ~ DHW_Mean + DHW_Dur, data = rv_list$Q80)
 summary(bm3)
 
 
+##Run D: colony level data using size as a continuous variable' limited to PM only as response----
+
+#create dataframe for analysis
+icra <- left_join(icra, dat) %>% mutate(PER_DEAD = PER_DEAD/100)
+
+# mean PM
+bm1 <- betareg(PER_DEAD ~ DHW_Mean + DHW_Dur + COLONYLENGTH, data = icra)
+
+
+
+##Run E:  Beta regression using colony level; subsetted first (n = 11 sites)----
+icra2 <- icra %>% filter(!is.na(TAIL_BINS))
+icra_list <- split(icra2, icra2$TAIL_BINS) #subset dataframe by size bin
+
+# mean PM
+bm1 <- betareg(PER_DEAD ~ DHW_Mean + DHW_Dur + COLONYLENGTH, data = icra_list$Q20)
+summary(bm1)
+
+bm2 <- betareg(PER_DEAD ~ DHW_Mean + DHW_Dur + COLONYLENGTH, data = icra_list$QMED)
+summary(bm2)
+
+bm3 <- betareg(PER_DEAD ~ DHW_Mean + DHW_Dur+ COLONYLENGTH, data = rv_list$Q80)
+summary(bm3)
+
+
+
+
+
 
 ####Checking Model Diagnostics-----------
 
@@ -204,3 +233,6 @@ sim_res <- createDHARMa(
 plot(sim_res)
 testDispersion(sim_res) #not super useful unless you have count or binomial data
 testOutliers(sim_res)
+
+
+
