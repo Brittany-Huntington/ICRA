@@ -251,6 +251,40 @@ testOutliers(sim_res)       # Are there extreme values?
 #plot resudials by site
 plotResiduals(sim_res, south_colonies_scaled$SITE)
 
+#suggests non-linearity. ok.so using Splines
+
+library(splines)
+
+model_nonlinear_spline <- glmmTMB(
+  prop_PM_adj ~ ns(scaled_DHW_Dur, df = 3) + scaled_DHW_Mean + (1 | SITE),
+  data = south_colonies_scaled,
+  family = beta_family()
+)
+
+summary(model_nonlinear_spline)
+
+model_nonlinear_spline2<- glmmTMB(prop_PM_adj ~ ns(scaled_DHW_Dur, 3) + ns(scaled_DHW_Mean, 3) + (1 | SITE),
+data = south_colonies_scaled,
+family = beta_family())
+
+summary(model_nonlinear_spline2)
+
+#or look at polynomial terms i.e. quadratic
+
+model_nonlinear_poly <- glmmTMB(
+  prop_PM_adj ~ poly(scaled_DHW_Dur, 2) + scaled_DHW_Mean + (1 | SITE),
+  data = south_colonies_scaled,
+  family = beta_family()
+)
+
+summary(model_nonlinear_poly)
+AIC(colonies_site_model_wsite, model_nonlinear_spline, model_nonlinear_spline2, model_nonlinear_poly)
+
+#linear has the lowest AIC....
+
+sim_res_spline <- simulateResiduals(model_nonlinear_spline, plot = TRUE)
+sim_res_spline2 <- simulateResiduals(model_nonlinear_spline2, plot = TRUE)
+
 
 #########################################
 ### 5.looking at March + Feb COLONY data#
