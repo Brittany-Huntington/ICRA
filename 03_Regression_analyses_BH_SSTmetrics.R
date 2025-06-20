@@ -79,160 +79,143 @@ rv$prev_PM_20[rv$prev_PM_20 == 1] <- rv$prev_PM_20[rv$prev_PM_20 == 1] - 0.01
 
 
 
-####LOAD DRIVER VARIABLES @ SITE LEVEL--------------
-dat <- read_csv("C:/github/ICRA/merged2025_PM_S_site.csv")%>% mutate_if(is.character,as.factor) %>% dplyr::select(SITE: LONGITUDE)
+####EXPLORE OTHER DRIVER VARIABLES (MAX HEAT AND VARITATION)-----------------
 
-plotNormalHistogram(dat$DHW_Mean)
-plotNormalHistogram(dat$DHW_Dur)
-
-#normalize drivers
-#env <- dat %>% dplyr::select (DHW_Dur, DHW_Mean)
-#env <- data.Normalization (as.matrix(env),type="n1",normalization="column")
-#dat[, c("DHW_Dur", "DHW_Mean")] <- env
-
-rv <- left_join(rv, dat)
-rv_size <-  left_join(rv_size,dat)
+dat <- read_csv("C:/github/ICRA/merged_PM_site_all_YR01.csv")%>% mutate_if(is.character,as.factor)
+colnames(dat)
+dat <- dat[,-c(1:2, 69:77)]  #66 variables
+dat <- dat[, sapply(dat, function(col) length(unique(col)) > 1)] #remove rows that only have one unique value; down to 49 variables
+dat <- dat[, sapply(dat, is.numeric)]
+dat <- dat %>% dplyr::select(contains("_jplMUR"))
 
 
-####BETA REGRESSION--------------
+
+#remove collinear variables
+cor_matrix <- cor(dat, method = "pearson", use = "pairwise.complete.obs")
+corrplot.mixed(cor_matrix, upper = "color",
+               lower = "number",
+               diag = "n",
+               tl.col = "black",
+               tl.srt = 45,
+               tl.pos = "lt")
+colnames(dat)
+dat.red <- dplyr::select(dat, DHW.MaxMax_Degree_Heating_Weeks_jplMUR_Daily_YR01 , mean_Sea_Surface_Temperature_jplMUR_Daily_YR01,
+                         q95_Sea_Surface_Temperature_jplMUR_Daily_YR01, sd_Sea_Surface_Temperature_jplMUR_Daily_YR01, mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01)
+cor_matrix <- cor(dat.red, method = "pearson", use = "pairwise.complete.obs") 
+corrplot.mixed(cor_matrix, upper = "color",
+               lower = "number",
+               diag = "n",
+               tl.col = "black",
+               tl.srt = 45,
+               tl.pos = "lt")
+
+dat.red <- dplyr::select(dat, DHW.MaxMax_Degree_Heating_Weeks_jplMUR_Daily_YR01 , mean_Sea_Surface_Temperature_jplMUR_Daily_YR01,
+                         q95_Sea_Surface_Temperature_jplMUR_Daily_YR01, mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01)
+cor_matrix <- cor(dat.red, method = "pearson", use = "pairwise.complete.obs") 
+corrplot.mixed(cor_matrix, upper = "color",
+               lower = "number",
+               diag = "n",
+               tl.col = "black",
+               tl.srt = 45,
+               tl.pos = "lt")
+
+dat.red <- dplyr::select(dat, mean_Sea_Surface_Temperature_jplMUR_Daily_YR01, mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01)
+
+plotNormalHistogram(dat.red$DHW.MaxMax_Degree_Heating_Weeks_jplMUR_Daily_YR01)
+plotNormalHistogram(dat.red$mean_Sea_Surface_Temperature_jplMUR_Daily_YR01)
+
+dat.red <- dat.red %>%
+  rename(
+    SST_mean = mean_Sea_Surface_Temperature_jplMUR_Daily_YR01,
+    SST_range = mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01) 
+
+sites <- read_csv("C:/github/ICRA/merged_PM_site_all_YR01.csv")%>% mutate_if(is.character,as.factor) %>% dplyr::select (SITE)
+dat.red <- cbind(sites, dat.red)
+rv <- left_join(rv, dat.red)
+rv_size <-  left_join(rv_size,dat.red)
+
+
+
+
+
 
 #Run A: build model without size class across all 31 southern ICRA sites from 2025----
 # mean PM
-bm1 <- betareg(mean_PM ~ DHW_Mean + DHW_Dur, data = rv)
+bm1 <- betareg(mean_PM ~ SST_mean + SST_range, data = rv)
 bmnull <- betareg(mean_PM ~ 1, data = rv)
-lm1 <- lm(mean_PM ~ DHW_Mean + DHW_Dur, data = rv)
-
 summary(bm1)
 lrtest(bm1, bmnull)
-AIC(bm1, bmnull, lm1) #betareg is better fit than linear model
+AIC(bm1, bmnull) #betareg is better fit than linear model
 
 
 #PM prevalence >10%
-bm1 <- betareg(prev_PM_10 ~ DHW_Mean + DHW_Dur, data = rv)
+bm1 <- betareg(prev_PM_10 ~ SST_mean + SST_range, data = rv)
 bmnull <- betareg(prev_PM_10 ~ 1, data = rv)
-lm1 <- lm(prev_PM_10 ~ DHW_Mean + DHW_Dur, data = rv)
-
 summary(bm1)
 lrtest(bm1, bmnull)
 AIC(bm1, bmnull, lm1) #betareg is better fit than linear model
 
 
 #PM prevalence >20%
-bm1 <- betareg(prev_PM_20 ~ DHW_Mean + DHW_Dur, data = rv)
+bm1 <- betareg(prev_PM_20 ~ SST_mean + SST_range, data = rv)
 bmnull <- betareg(prev_PM_20 ~ 1, data = rv)
-lm1 <- lm(prev_PM_20 ~ DHW_Mean + DHW_Dur, data = rv)
-
 summary(bm1)
 lrtest(bm1, bmnull)
 AIC(bm1, bmnull, lm1) #betareg is better fit than linear model
+
+
 
 
 #Run B: build model with 2 fixed effects plus using size bin as an interactive effect----
 
 # mean PM
-glm.1 <- glmmTMB(mean_PM ~ DHW_Mean * TAIL_BINS + DHW_Dur * TAIL_BINS, data = rv_size, family = beta_family(link = "logit"))
+glm.1 <- glmmTMB(mean_PM ~ SST_mean * TAIL_BINS + SST_range * TAIL_BINS, data = rv_size, family = beta_family(link = "logit"))
 summary(glm.1)
 
 
 #PM prevalence >10%
-glm.2 <- glmmTMB(prev_PM_10 ~ DHW_Mean * TAIL_BINS + DHW_Dur * TAIL_BINS, data = rv_size, family = beta_family(link = "logit"))
+glm.2 <- glmmTMB(prev_PM_10 ~ SST_mean * TAIL_BINS + SST_range * TAIL_BINS, data = rv_size, family = beta_family(link = "logit"))
 summary(glm.2)
 
 
 #PM prevalence >20%
-glm.3 <- glmmTMB(prev_PM_20 ~ DHW_Mean * TAIL_BINS + DHW_Dur * TAIL_BINS, data = rv_size, family = beta_family(link = "logit"))
+glm.3 <- glmmTMB(prev_PM_20 ~ SST_mean * TAIL_BINS + SST_range * TAIL_BINS, data = rv_size, family = beta_family(link = "logit"))
 summary(glm.3)
 
 
-#Run C: subsetting by size class first and then running beta regression----
 
+
+#Run C: subsetting by size class first and then running beta regression----
 rv_list <- split(rv_size, rv_size$TAIL_BINS) #subset dataframe by size bin
 
-
 # mean PM
-bm1 <- betareg(mean_PM ~ DHW_Mean + DHW_Dur, data = rv_list$Q20)
+bm1 <- betareg(mean_PM ~ SST_mean + SST_range, data = rv_list$Q20)
 summary(bm1)
 
-bm2 <- betareg(mean_PM ~ DHW_Mean + DHW_Dur, data = rv_list$QMED)
+bm2 <- betareg(mean_PM ~ SST_mean + SST_range, data = rv_list$QMED)
 summary(bm2)
 
-bm3 <- betareg(mean_PM ~ DHW_Mean + DHW_Dur, data = rv_list$Q80)
+bm3 <- betareg(mean_PM ~ SST_mean + SST_range, data = rv_list$Q80)
 summary(bm3)
 
 
 #PM prevalence >10%
-bm1 <- betareg(prev_PM_10 ~ DHW_Mean + DHW_Dur, data = rv_list$Q20)
+bm1 <- betareg(prev_PM_10 ~ SST_mean + SST_range, data = rv_list$Q20)
 summary(bm1)
 
-bm2 <- betareg(prev_PM_10 ~ DHW_Mean + DHW_Dur, data = rv_list$QMED)
+bm2 <- betareg(prev_PM_10 ~ SST_mean + SST_range, data = rv_list$QMED)
 summary(bm2)
 
-bm3 <- betareg(prev_PM_10 ~ DHW_Mean + DHW_Dur, data = rv_list$Q80)
+bm3 <- betareg(prev_PM_10 ~ SST_mean + SST_range, data = rv_list$Q80)
 summary(bm3)
 
 
 #PM prevalence >20%
-bm1 <- betareg(prev_PM_20 ~ DHW_Mean + DHW_Dur, data = rv_list$Q20)
+bm1 <- betareg(prev_PM_20 ~ SST_mean + SST_range, data = rv_list$Q20)
 summary(bm1)
 
-bm2 <- betareg(prev_PM_20 ~ DHW_Mean + DHW_Dur, data = rv_list$QMED)
+bm2 <- betareg(prev_PM_20 ~ SST_mean + SST_range, data = rv_list$QMED)
 summary(bm2)
 
-bm3 <- betareg(prev_PM_20 ~ DHW_Mean + DHW_Dur, data = rv_list$Q80)
+bm3 <- betareg(prev_PM_20 ~ SST_mean + SST_range, data = rv_list$Q80)
 summary(bm3)
-
-
-##Run D: colony level data using size as a continuous variable' limited to PM only as response----
-
-#create dataframe for analysis
-icra <- left_join(icra, dat) %>% mutate(PER_DEAD = PER_DEAD/100)
-
-# mean PM
-bm1 <- betareg(PER_DEAD ~ DHW_Mean + DHW_Dur + COLONYLENGTH, data = icra)
-
-
-
-##Run E:  Beta regression using colony level; subsetted first (n = 11 sites)----
-icra2 <- icra %>% filter(!is.na(TAIL_BINS))
-icra_list <- split(icra2, icra2$TAIL_BINS) #subset dataframe by size bin
-
-# mean PM
-bm1 <- betareg(PER_DEAD ~ DHW_Mean + DHW_Dur + COLONYLENGTH, data = icra_list$Q20)
-summary(bm1)
-
-bm2 <- betareg(PER_DEAD ~ DHW_Mean + DHW_Dur + COLONYLENGTH, data = icra_list$QMED)
-summary(bm2)
-
-bm3 <- betareg(PER_DEAD ~ DHW_Mean + DHW_Dur+ COLONYLENGTH, data = rv_list$Q80)
-summary(bm3)
-
-
-
-
-
-
-####Checking Model Diagnostics-----------
-
-# Simulate new responses manually from the fitted beta distribution
-simulateFunction <- function(fittedModel, nsim) {
-  mu <- fitted(fittedModel)
-  phi <- fittedModel$coefficients$precision
-  shape1 <- mu * phi
-  shape2 <- (1 - mu) * phi
-  replicate(nsim, rbeta(length(mu), shape1, shape2))
-}
-
-# Create DHARMa object for your given model using the custom simulator
-sim_res <- createDHARMa(
-  simulatedResponse = simulateFunction(bm1, 250),
-  observedResponse = rv_list$Q20$mean_PM,
-  fittedPredictedResponse = fitted(bm1)
-)
-
-# Plot diagnostics
-plot(sim_res)
-testDispersion(sim_res) #not super useful unless you have count or binomial data
-testOutliers(sim_res)
-
-
-
