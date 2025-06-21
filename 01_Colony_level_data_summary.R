@@ -13,10 +13,11 @@ library(broom.mixed)
 library(multcomp)
 library(emmeans)
 
+
 load(file ="data/All_ICRA_SIZE_PM.RData") #north and south
-load(file = "data/south_only_ICRA_Colony_level_data.csv") #this contains all south data
+s<-read.csv("data/south_only_ICRA_Colony_level_data.csv") #this contains all south data
 load(file = "data/ICRA_SIZE_PM_SOUTH_sizefiltered.RData") #south data from all years but 2025 only has march data bc large colonies were removed 
-load(file = "data/ICRA_2025_SIZE_PM_nofeb.RData") #march 2025 data without large colonies. USE
+load(file = "data/ICRA_2025_SIZE_PM_nofeb.RData") #march 2025 data without large colonies. 
 
 
 # set colors
@@ -26,10 +27,11 @@ print(vir_colors)
 custom_colors <- vir_colors
 custom_colors[4] <- "gold"  # DAA520 goldenrod 
 
+
 #Data summaries
 
 #how many corals were sized (Feb 2025 data size wasn't taken)
-summary_by_year_and_total_all <- ALL_ICRA_SIZE_PM %>%
+summary_by_year_and_total_south_all <- s %>%
   group_by(Data_Source, YEAR) %>%
   summarise(
     non_na_count = sum(!is.na(COLONYLENGTH)),
@@ -43,7 +45,7 @@ summary_by_year_and_total_all <- ALL_ICRA_SIZE_PM %>%
 # ncrmp2      2023           180        0
 
 #how many corals were sized in south sites only (Feb 2025 size wasn't taken)
-summary_by_year_and_total_SOUTH <- ICRA_SIZE_PM_nofeb %>%
+summary_by_year_and_total_SOUTH <- ICRA_SIZE_PM_SOUTH_filtered %>%
   group_by(Data_Source, YEAR) %>%
   summarise(
     non_na_count = sum(!is.na(COLONYLENGTH)),
