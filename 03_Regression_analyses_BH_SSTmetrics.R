@@ -5,12 +5,14 @@ library(viridis)
 library(ggridges)
 library(rcompanion)
 library(corrplot)
+library(car)
+library(broom)
 if(!require(betareg)){install.packages("betareg")}
 if(!require(clusterSim)){install.packages("clusterSim")} #data.Normalization function; centering and scaling data
 if(!require(lmtest)){install.packages("lmtest")}
 if(!require(glmmTMB)){install.packages("glmmTMB")}
 if(!require(DHARMa)){install.packages("DHARMa")}
-
+if(!require(performance)){install.packages("performance")}
 
 rm(list=ls())
 #dir = Sys.info()[7]
@@ -219,3 +221,84 @@ summary(bm2)
 
 bm3 <- betareg(prev_PM_20 ~ SST_mean + SST_range, data = rv_list$Q80)
 summary(bm3)
+
+
+
+##Run D: colony level data using size as a continuous variable' limited to PM only as response----
+
+#create dataframe for analysis
+icra <- icra %>% filter(!is.na(COLONYLENGTH))
+n <- nrow(icra)
+icra$PER_DEAD_adj <- (icra$PER_DEAD * (n - 1) + 0.5) / n
+icra <- left_join(icra, dat.red) %>% mutate(PER_DEAD_adj = PER_DEAD_adj/100)
+
+# mean PM
+bm1 <- betareg(PER_DEAD_adj ~ SST_mean + SST_range + COLONYLENGTH, data = icra)
+summary(bm1)
+
+
+
+####Checking Model Diagnostics-----------
+check_collinearity(bm1)
+
+# Plot residuals vs. fitted values
+plot(bm1, which = 1)  # like base R lm plotting
+
+# QQ plot of residuals
+plot(bm1, which = 2)
+
+# Simulate new responses manually from the fitted beta distribution
+simulateFunction <- function(fittedModel, nsim) {
+  mu <- fitted(fittedModel)
+  phi <- fittedModel$coefficients$precision
+  shape1 <- mu * phi
+  shape2 <- (1 - mu) * phi
+  replicate(nsim, rbeta(length(mu), shape1, shape2))
+}
+
+# Create DHARMa object for your given model using the custom simulator
+sim_res <- createDHARMa(
+  simulatedResponse = simulateFunction(bm1, 250),
+  observedResponse = icra$PER_DEAD_adj,
+  fittedPredictedResponse = fitted(bm1)
+)
+
+# Plot diagnostics
+plot(sim_res)
+testDispersion(sim_res) #not super useful unless you have count or binomial data
+testOutliers(sim_res)
+
+
+#####PLOT------------
+
+
+# Step 1: Fit a linear model per TAIL_BINs group and extract R²
+stats_labels <- rv_size %>%
+  group_by(TAIL_BINS) %>%
+  do({
+    mod <- lm(mean_PM ~ SST_mean, data = .)
+    tidy_mod <- glance(mod)
+    tibble(
+      r2 = tidy_mod$r.squared,
+      pval = tidy_mod$p.value
+    )
+  }) %>%
+  mutate(label = paste0("R² = ", round(r2, 2), 
+                        ", p = ", signif(pval, 2)))
+
+rv_size$TAIL_BINS <- factor(rv_size$TAIL_BINS, levels = c("Q20", "QMED", "Q80"))
+
+ggplot(rv_size, aes(x = SST_mean, y = mean_PM)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +
+  facet_wrap(~ TAIL_BINS) +
+  geom_text(data = stats_labels,
+            aes(x = Inf, y = Inf, label = label),
+            hjust = 1.1, vjust = 1.5,
+            inherit.aes = FALSE, size = 4) +
+  theme_minimal() +
+  labs(
+    x = "SST Mean (daily)",
+    y = "Mean Partial Mortality (%)",
+    title = "Relationship between SST Mean and Partial Mortality by Size Class"
+  )
