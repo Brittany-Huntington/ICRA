@@ -13,6 +13,7 @@ if(!require(lmtest)){install.packages("lmtest")}
 if(!require(glmmTMB)){install.packages("glmmTMB")}
 if(!require(DHARMa)){install.packages("DHARMa")}
 if(!require(performance)){install.packages("performance")}
+if(!require(ggeffects)){install.packages("ggeffects")}
 
 rm(list=ls())
 #dir = Sys.info()[7]
@@ -38,46 +39,19 @@ rv_size <- icra %>% filter(!is.na(TAIL_BINS)) %>%
   summarise(mean_PM = mean(PER_DEAD, na.rm = TRUE), prev_PM_10 = round(mean(PER_DEAD > 10, na.rm = TRUE) , 1),
             prev_PM_20 = round(mean(PER_DEAD > 20, na.rm = TRUE) , 1), .groups = "drop")
 
-cor_matrix <- rv_size %>% select(3:5) %>% cor(use = "pairwise.complete.obs", method = "pearson")
-corrplot(cor_matrix, method = "circle") #mean and prevalence highly correlated
-
 rv_size$mean_PM <- rv_size$mean_PM/100
 
 #check ranges of response variables for 0 and 100
 range(rv_size$mean_PM)
-range(rv_size$prev_PM_10)
-range(rv_size$prev_PM_20)
 
 #adjust ranges to fall between 0-1
 rv_size$mean_PM[rv_size$mean_PM == 0] <- rv_size$mean_PM[rv_size$mean_PM == 0] + 0.01
 rv_size$mean_PM[rv_size$mean_PM == 1] <- rv_size$mean_PM[rv_size$mean_PM == 1] - 0.01
-rv_size$prev_PM_10[rv_size$prev_PM_10 == 0] <- rv_size$prev_PM_10[rv_size$prev_PM_10 == 0] + 0.01
-rv_size$prev_PM_10[rv_size$prev_PM_10 == 1] <- rv_size$prev_PM_10[rv_size$prev_PM_10 == 1] - 0.01
-rv_size$prev_PM_20[rv_size$prev_PM_20 == 0] <- rv_size$prev_PM_20[rv_size$prev_PM_20 == 0] + 0.01
-rv_size$prev_PM_20[rv_size$prev_PM_20 == 1] <- rv_size$prev_PM_20[rv_size$prev_PM_20 == 1] - 0.01
 
-
-#site level means (irrespective of size class)
-rv <- icra %>% group_by(SITE) %>%
-  summarise(mean_PM = mean(PER_DEAD, na.rm = TRUE), prev_PM_10 = round(mean(PER_DEAD > 10, na.rm = TRUE) , 1),
-            prev_PM_20 = round(mean(PER_DEAD > 20, na.rm = TRUE) , 1), .groups = "drop")
-
-cor_matrix <- rv %>% select(2:4) %>% cor(use = "pairwise.complete.obs", method = "pearson")
-corrplot(cor_matrix, method = "circle") #mean and prevalence highly correlated
-
-rv$mean_PM <- rv$mean_PM/100
-range(rv$mean_PM)
-range(rv$prev_PM_10)
-range(rv$prev_PM_20)
 
 #adjust ranges to fall between 0-1
 rv$mean_PM[rv$mean_PM == 0] <- rv$mean_PM[rv$mean_PM == 0] + 0.01
 rv$mean_PM[rv$mean_PM == 1] <- rv$mean_PM[rv$mean_PM == 1] - 0.01
-rv$prev_PM_10[rv$prev_PM_10 == 0] <- rv$prev_PM_10[rv$prev_PM_10 == 0] + 0.01
-rv$prev_PM_10[rv$prev_PM_10 == 1] <- rv$prev_PM_10[rv$prev_PM_10 == 1] - 0.01
-rv$prev_PM_20[rv$prev_PM_20 == 0] <- rv$prev_PM_20[rv$prev_PM_20 == 0] + 0.01
-rv$prev_PM_20[rv$prev_PM_20 == 1] <- rv$prev_PM_20[rv$prev_PM_20 == 1] - 0.01
-
 
 
 
@@ -121,50 +95,17 @@ corrplot.mixed(cor_matrix, upper = "color",
                tl.srt = 45,
                tl.pos = "lt")
 
-dat.red <- dplyr::select(dat, mean_Sea_Surface_Temperature_jplMUR_Daily_YR01, mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01)
 
 plotNormalHistogram(dat.red$DHW.MaxMax_Degree_Heating_Weeks_jplMUR_Daily_YR01)
 plotNormalHistogram(dat.red$mean_Sea_Surface_Temperature_jplMUR_Daily_YR01)
+plotNormalHistogram(dat.red$q95_Sea_Surface_Temperature_jplMUR_Daily_YR01)
 
-dat.red <- dat.red %>%
-  rename(
-    SST_mean = mean_Sea_Surface_Temperature_jplMUR_Daily_YR01,
-    SST_range = mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01) 
+dat.red <- dplyr::select(dat, mean_Sea_Surface_Temperature_jplMUR_Daily_YR01, mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01)
+dat.red <- dat.red %>% rename(SST_mean = mean_Sea_Surface_Temperature_jplMUR_Daily_YR01,SST_range = mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01) 
 
 sites <- read_csv("C:/github/ICRA/merged_PM_site_all_YR01.csv")%>% mutate_if(is.character,as.factor) %>% dplyr::select (SITE)
 dat.red <- cbind(sites, dat.red)
-rv <- left_join(rv, dat.red)
 rv_size <-  left_join(rv_size,dat.red)
-
-
-
-
-
-
-#Run A: build model without size class across all 31 southern ICRA sites from 2025----
-# mean PM
-bm1 <- betareg(mean_PM ~ SST_mean + SST_range, data = rv)
-bmnull <- betareg(mean_PM ~ 1, data = rv)
-summary(bm1)
-lrtest(bm1, bmnull)
-AIC(bm1, bmnull) #betareg is better fit than linear model
-
-
-#PM prevalence >10%
-bm1 <- betareg(prev_PM_10 ~ SST_mean + SST_range, data = rv)
-bmnull <- betareg(prev_PM_10 ~ 1, data = rv)
-summary(bm1)
-lrtest(bm1, bmnull)
-AIC(bm1, bmnull, lm1) #betareg is better fit than linear model
-
-
-#PM prevalence >20%
-bm1 <- betareg(prev_PM_20 ~ SST_mean + SST_range, data = rv)
-bmnull <- betareg(prev_PM_20 ~ 1, data = rv)
-summary(bm1)
-lrtest(bm1, bmnull)
-AIC(bm1, bmnull, lm1) #betareg is better fit than linear model
-
 
 
 
@@ -224,19 +165,6 @@ summary(bm3)
 
 
 
-##Run D: colony level data using size as a continuous variable' limited to PM only as response----
-
-#create dataframe for analysis
-icra <- icra %>% filter(!is.na(COLONYLENGTH))
-n <- nrow(icra)
-icra$PER_DEAD_adj <- (icra$PER_DEAD * (n - 1) + 0.5) / n
-icra <- left_join(icra, dat.red) %>% mutate(PER_DEAD_adj = PER_DEAD_adj/100)
-
-# mean PM
-bm1 <- betareg(PER_DEAD_adj ~ SST_mean + SST_range + COLONYLENGTH, data = icra)
-summary(bm1)
-
-
 
 ####Checking Model Diagnostics-----------
 check_collinearity(bm1)
@@ -269,36 +197,49 @@ testDispersion(sim_res) #not super useful unless you have count or binomial data
 testOutliers(sim_res)
 
 
-#####PLOT------------
+####Partial Regression Plots--------------
+
+#Option 1: Using ggeffects (easy & robust for interactions); 
+# Get model predictions across SST_mean, grouped by TAIL_BINS
+preds <- ggpredict(glm.1, terms = c("SST_mean", "TAIL_BINS"))
+
+# Plot
+ggplot(preds, aes(x = x, y = predicted, color = group)) +
+  geom_line(linewidth = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), 
+              alpha = 0.2, color = NA) +
+  labs(x = "SST Mean",
+       y = "Predicted Partial Mortality (mean_PM)",
+       color = "TAIL_BINs", fill = "TAIL_BINs") +
+  theme_minimal()
 
 
-# Step 1: Fit a linear model per TAIL_BINs group and extract R²
-stats_labels <- rv_size %>%
-  group_by(TAIL_BINS) %>%
-  do({
-    mod <- lm(mean_PM ~ SST_mean, data = .)
-    tidy_mod <- glance(mod)
-    tibble(
-      r2 = tidy_mod$r.squared,
-      pval = tidy_mod$p.value
-    )
-  }) %>%
-  mutate(label = paste0("R² = ", round(r2, 2), 
-                        ", p = ", signif(pval, 2)))
 
-rv_size$TAIL_BINS <- factor(rv_size$TAIL_BINS, levels = c("Q20", "QMED", "Q80"))
 
-ggplot(rv_size, aes(x = SST_mean, y = mean_PM)) +
-  geom_point(alpha = 0.6) +
-  geom_smooth(method = "lm", se = TRUE, color = "blue") +
-  facet_wrap(~ TAIL_BINS) +
-  geom_text(data = stats_labels,
-            aes(x = Inf, y = Inf, label = label),
-            hjust = 1.1, vjust = 1.5,
-            inherit.aes = FALSE, size = 4) +
-  theme_minimal() +
+# Plot
+ggplot() +
+  # Raw data points
+  geom_point(data = rv_size, 
+             aes(x = SST_mean, y = mean_PM, color = TAIL_BINS), 
+             alpha = 0.4, size = 1.5) +
+  
+  # Model-predicted lines
+  geom_line(data = preds, 
+            aes(x = x, y = predicted, color = group), 
+            size = 1) +
+  
+  # Confidence ribbons
+  geom_ribbon(data = preds, 
+              aes(x = x, ymin = conf.low, ymax = conf.high, fill = group), 
+              alpha = 0.2, inherit.aes = FALSE) +
+  
   labs(
-    x = "SST Mean (daily)",
-    y = "Mean Partial Mortality (%)",
-    title = "Relationship between SST Mean and Partial Mortality by Size Class"
-  )
+    x = "SST Mean",
+    y = "Predicted Partial Mortality (mean_PM)",
+    color = "TAIL_BINs",
+    fill = "TAIL_BINs",
+    title = "Interaction: SST_mean × TAIL_BINs"
+  ) +
+  theme_minimal()
+
+
