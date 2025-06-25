@@ -122,6 +122,10 @@ save(ALL_ICRA_SIZE_PM, file ="data/All_ICRA_SIZE_PM.RData")
 #manually removed all ICRA data from north side of island in arcGIS. both are plotted in map script for transparency and visualization.
 SOUTH_COLONY_SIZE_PM<-read.csv("~/GitHub/ICRA/data/south_only_ICRA_Colony_level_data.csv")
 
+south_ICRA_survey_data <- SOUTH_COLONY_SIZE_PM %>%
+  filter(COLONYLENGTH >= 4.9)
+save(south_ICRA_survey_data, file ="data/ICRA_PM_SIZE_USE.Rdata")
+
 #identify corals outside the size range (<5cm or >116cm, to account for differences in survey methods in 2025 vs. ncrmp) (to update density dataset)
 #this automaticall excludes any feb data (sicne we didn't measure size)
 removed_data <- SOUTH_COLONY_SIZE_PM %>% 

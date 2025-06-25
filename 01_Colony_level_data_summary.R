@@ -12,12 +12,14 @@ library(emmeans)
 library(broom.mixed)
 library(multcomp)
 library(emmeans)
-
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
 
 load(file ="data/All_ICRA_SIZE_PM.RData") #north and south
 s<-read.csv("data/south_only_ICRA_Colony_level_data.csv") #this contains all south data
 load(file = "data/ICRA_SIZE_PM_SOUTH_sizefiltered.RData") #south data from all years but 2025 only has march data bc large colonies were removed 
-load(file = "data/ICRA_2025_SIZE_PM_nofeb.RData") #march 2025 data without large colonies. 
+load(file = "data/ICRA_2025_SIZE_PM_nofeb.RData") #average march 2025 data without large colonies. 
 
 
 # set colors
@@ -39,10 +41,10 @@ summary_by_year_and_total_south_all <- s %>%
     .groups = "drop"  
   ) 
 #Data_Source YEAR  non_na_count na_count
-# esa         2025           629      648
-# ncrmp2      2015            58        0
+# esa         2025           617      569
+# ncrmp2      2015            53        0
 # ncrmp2      2018            44        0
-# ncrmp2      2023           180        0
+# ncrmp2      2023           179        0
 
 #how many corals were sized in south sites only (Feb 2025 size wasn't taken)
 summary_by_year_and_total_SOUTH <- ICRA_SIZE_PM_SOUTH_filtered %>%
@@ -186,7 +188,7 @@ mean_size_per_year_south <- ICRA_SIZE_PM %>%
 #12  2025 QMED             26.7 
 
 #when excluding north: 
-mean_size_per_year_south <- ICRA_SIZE_PM %>%
+mean_size_per_year_south <- s %>%
   group_by(YEAR) %>%
 summarise(mean_size = mean(COLONYLENGTH, na.rm = TRUE),
           sd_size = sd(COLONYLENGTH, na.rm = TRUE),
@@ -197,8 +199,8 @@ summarise(mean_size = mean(COLONYLENGTH, na.rm = TRUE),
           .groups = "drop")
 
 # mean PM per year
-mean_PM_per_year_all <- ALL_ICRA_SIZE_PM %>%
-  group_by(YEAR) %>%
+mean_PM_per_year_all <- s %>%
+  group_by(YEAR, TAIL_BINS) %>%
   summarise(mean_PM = mean(PER_DEAD, na.rm = TRUE),
             sd_PM = sd(PER_DEAD, na.rm = TRUE),
             n = sum(!is.na(PER_DEAD)),
@@ -214,7 +216,7 @@ mean_PM_per_year_all <- ALL_ICRA_SIZE_PM %>%
 # almost four fold increase in PM
 
 # mean PM per year south only
-mean_PM_per_year_south <- ICRA_SIZE_PM_nofeb %>%
+mean_PM_per_year_south <- s %>%
   group_by(YEAR) %>%
   summarise(mean_PM = mean(PER_DEAD, na.rm = TRUE),
             sd_PM = sd(PER_DEAD, na.rm = TRUE),
@@ -320,57 +322,66 @@ max_size <- ICRA_SIZE_PM %>%
 #4 2025       170
 
 
-shapiro.test(ICRA_SIZE_PM$PER_DEAD)
+shapiro.test(s$PER_DEAD)
 #W = 0.76919, p-value < 2.2e-16
 
-kw_results <- ICRA_SIZE_PM %>%
+kw_results <- s %>%
   kruskal_test(PER_DEAD ~ YEAR)
 #PER_DEAD   881      95.9     3 1.16e-20 Kruskal-Wallis
 
-kw_results_bin <- ICRA_SIZE_PM %>%
+kw_results_bin <- s %>%
   kruskal_test(PER_DEAD ~ TAIL_BINS)
 #PER_DEAD   881      357.     2 2.89e-78 Kruskal-Wallis
 
-dunn_results <- ICRA_SIZE_PM %>%
+dunn_results <- s %>%
   dunn_test(PER_DEAD ~ YEAR, p.adjust.method = "bonferroni")
 #each year compared to 2025 sig (**** ) others not
 
-dunn_results_bin <- ICRA_SIZE_PM %>%
+dunn_results_bin <- s %>%
   dunn_test(PER_DEAD ~ TAIL_BINS, p.adjust.method = "bonferroni")
 #each is sig (****), doesn't tell us much b/c we put the bins on the data.
 
 #test within each size bin
-ICRA_SIZE_PM %>%
+s %>%
   filter (TAIL_BINS == 'Q20') %>%
   kruskal_test(PER_DEAD ~ YEAR)
 #PER_DEAD   167      1.03     3 0.794 Kruskal-Walli
 
-ICRA_SIZE_PM %>%
+s %>%
 filter (TAIL_BINS == 'Q20') %>%
   dunn_test(PER_DEAD ~ YEAR, p.adjust.method = "bonferroni")
 
-ICRA_SIZE_PM %>%
+s %>%
   filter (TAIL_BINS == 'QMED') %>%
   kruskal_test(PER_DEAD ~ YEAR)
 #ER_DEAD   467      50.9     3 5.22e-11 Kruskal-Wallis
 
- ICRA_SIZE_PM %>%
+ s %>%
    filter (TAIL_BINS == 'QMED') %>%
   dunn_test(PER_DEAD ~ YEAR, p.adjust.method = "bonferroni")
  #each year + 2025 is sig (** - ****)
  
  
- ICRA_SIZE_PM %>%
+ s %>%
    filter (TAIL_BINS == 'Q80') %>%
    kruskal_test(PER_DEAD ~ YEAR)
  #PER_DEAD   247      79.8     3 3.44e-17 Kruskal-Wallis
  
- ICRA_SIZE_PM %>%
+ s %>%
    filter (TAIL_BINS == 'Q80') %>%
    dunn_test(PER_DEAD ~ YEAR, p.adjust.method = "bonferroni")
  #each year + 2025 is sig (** - ****)
  
-
+####within year by size classs
+ s %>%
+   filter (YEAR == '2025') %>%
+   kruskal_test(PER_DEAD ~ TAIL_BINS)
+ 
+ s %>%
+   filter (YEAR == '2025') %>%
+   dunn_test(PER_DEAD ~ TAIL_BINS, p.adjust.method = "bonferroni")
+ ###########
+ 
 ICRA_SIZE_PM <- ICRA_SIZE_PM %>%
   mutate(YEAR_BIN = interaction(YEAR, TAIL_BINS, sep = "_"))
 
@@ -385,7 +396,7 @@ dunn_results_combo <- ICRA_SIZE_PM %>%
 ###################################
 #####ridgeplot of PM by year#######
 ###################################
-ggplot(ICRA_SIZE_PM, aes(x = PER_DEAD, y = as.factor(YEAR), fill = as.factor(YEAR))) +
+ggplot(s, aes(x = PER_DEAD, y = as.factor(YEAR), fill = as.factor(YEAR))) +
   geom_density_ridges(alpha = 0.8) +  # Ridge plot
   geom_point(data = mean_PM_per_year_south, aes(x = (mean_PM), y = as.factor(YEAR)), #can change to log(mean_PM)
              color = "black", size = 3, shape = 16) +  # Means are points
