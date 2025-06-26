@@ -61,7 +61,7 @@ model<- glmmTMB(
   family = beta_family()
 )
 summary(model)
-model_tidy <- tidy(model)
+#model_tidy <- tidy(model)
 #SST_Mean:MED: coefficient=26.831 pvalue=0.025. close to brittany's #prop_adj
 #SST_mean:MED: 
 performance::r2(model)
@@ -72,7 +72,7 @@ performance::r2(model)
 #Ferrari's R2: 0.635
 
 # Extract the coefficients table from the model summary
-coeffs <- model_summary$coefficients$cond
+coeffs <- model$coefficients$cond
 
 # Convert to a data frame
 coeff_df <- as.data.frame(coeffs)
@@ -130,7 +130,7 @@ site2$Size_cat <- factor(site2$Size_cat, levels = c("Small", "Medium", "Large"))
 
 geom_smooth(method = "lm", se = TRUE)
 
-colors<-c("darkgrey", "gold", "goldenrod" )
+colors<-c("goldenrod", "gold", "darkgrey" )
 
 #loess
 ggplot(site2, aes(x = SST_Mean, y = prop_mean_PM, color = Size_cat)) +
@@ -224,7 +224,7 @@ all.newdata<-rbind(newdata_small,newdata_med,newdata_large)
 
 
 #Reorder size variables
-all.newdata$Size_cat <- factor(all.newdata$Size_cat, levels = c("Small","Medium","Large"))
+all.newdata$Size_cat <- factor(all.newdata$Size_cat, levels = c("Large","Medium","Small"))
 all.newdata<- all.newdata[order(all.newdata$Size_cat),];head(all.newdata)
 
 
@@ -257,9 +257,10 @@ ggplot() +
 #ver2
 ggplot(all.newdata, aes(x = SST_Mean, y = Predicted_PM, color = Size_cat, fill = Size_cat)) +
   geom_line() +
+  geom_point(data = site2, aes(x = SST_Mean, y = prop_mean_PM, color = Size_cat), size = 2, alpha = 0.7) +
   geom_ribbon(aes(ymin = Predict.lwr, ymax = Predict.upr), alpha = 0.3, color = NA) +
-  facet_wrap(~Size_cat) +
-  geom_rug(aes(x = SST_Mean, y = 0)) +
+  #facet_wrap(~Size_cat) +
+  #geom_rug(aes(x = SST_Mean, y = 0)) +
   labs(
     #title = "Predicted PM for Different Size Classes",
     x = expression(bold("SST Mean ("*~degree*C*")")),
@@ -268,8 +269,8 @@ ggplot(all.newdata, aes(x = SST_Mean, y = Predicted_PM, color = Size_cat, fill =
   theme_minimal() +
   theme(
     axis.title = element_text(face = "bold"),
-    legend.position = "none",
-    #legend.title = element_blank(),
+    legend.position = "right",
+    legend.title = element_blank(),
     #legend.key.size = unit(0.5, 'cm'),
     #legend.text = element_text(size = 15),
     text = element_text(size = 15),

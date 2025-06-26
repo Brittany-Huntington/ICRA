@@ -34,6 +34,8 @@ site<-merged2025_eds_PM_S_colony%>%
     LONGITUDE = first(LONGITUDE),
     .groups = "drop")
 
+range(site$prop_mean_PM)
+
 hist(site$prop_mean_PM, breaks = 30)
 
 model<- glmmTMB(

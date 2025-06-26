@@ -12,7 +12,8 @@ library(dplyr)
 select = dplyr::select
 rename  = dplyr::rename
 
-load("data/eds_output.Rdata")
+#load("data/eds_output.Rdata")
+load("eds_output_Sep12025.Rdata")
 load(file ="data/ICRA_PM_SIZE_USE.Rdata")
 
 #subset 2025 (can later add this to clean-colony level script)
@@ -20,19 +21,33 @@ s<-south_ICRA_survey_data %>%
   filter( YEAR == '2025')
 
 
+
+
 #subset variables you want to use:
 sub_eds <- eds %>%
+  select(SITE,
+         SST_range = mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_MO06,
+         SST_Mean = mean_Sea_Surface_Temperature_jplMUR_Daily_MO06
+  )
+
+range(sub_eds$SST_Mean)
+range(sub_eds$SST_range)
+
+year_eds <- eds %>%
   select(SITE,
          SST_range = mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_YR01,
          SST_Mean = mean_Sea_Surface_Temperature_jplMUR_Daily_YR01
   )
 
+range(year_eds$SST_Mean)
+range(year_eds$SST_range)
+
 #next is merging variables of interest back with PM colony data
 merged2025_eds_PM_S_colony<-sub_eds%>%
   left_join(south_ICRA_survey_data, by = "SITE")%>%
   filter(!is.na(PER_DEAD))
-#write.csv(merged2025_PM_S_colony, file ="merged2025_PM_S_colony.csv") 
-save(merged2025_eds_PM_S_colony, file="paper/merged2025_eds_PM_S_colony.Rdata")
+write.csv(merged2025_eds_PM_S_colony, file ="merged2025_eds_PM_S_colony6m.csv") 
+save(merged2025_eds_PM_S_colony, file="paper/merged2025_eds_PM_S_colony6m.Rdata")
 
 #check if SST mean and range are not correlated
 sub_numeric <- sub_eds %>%
