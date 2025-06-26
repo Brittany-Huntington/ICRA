@@ -18,11 +18,9 @@ library(rstatix)
 
 load(file ="data/ICRA_PM_SIZE_USE.Rdata")
 
-#subset 2025 (can later add this to clean-colony level script)
+#remove colonies larger than 116 cm. 
 s<-south_ICRA_survey_data %>%
-  filter( YEAR == '2025')%>%
-  group_by(SITE)%>%
-  summarise(meanpm = mean(PER_DEAD))
+  filter(COLONYLENGTH <= 116.1)
 
 #data summary
 mean_size_per_year_south <- s %>%
@@ -164,7 +162,7 @@ facet_labels <- c(
 #####ridgeplot of PM by year#######
 ###################################
 ggplot(s, aes(x = PER_DEAD, y = as.factor(YEAR), fill = as.factor(YEAR))) +
-  geom_density_ridges(alpha = 0.8) +  # Ridge plot
+  geom_density_ridges(alpha = 1) +  # Ridge plot
   geom_point(data = mean_PM_per_year_south, aes(x = (mean_PM), y = as.factor(YEAR)), #can change to log(mean_PM)
              color = "black", size = 3, shape = 16) +  # Means are points
   #stat_density_ridges(quantile_lines = TRUE, quantiles = 3, alpha = 0.5, color= "black", linewidth = 0.5) +  # Quantiles
@@ -172,7 +170,7 @@ ggplot(s, aes(x = PER_DEAD, y = as.factor(YEAR), fill = as.factor(YEAR))) +
             aes(x = max_size + (max_size * 0.05),  
                 y = as.factor(YEAR), 
                 label = paste0("N=", N)),  
-            hjust = 2, vjust = -1, size = 3, color = "black") +  
+            hjust = 2, vjust = -1, size = 4, color = "black") +  
   labs(
     x = "Partial mortality (%)",
     y = "Year",
@@ -180,46 +178,59 @@ ggplot(s, aes(x = PER_DEAD, y = as.factor(YEAR), fill = as.factor(YEAR))) +
   scale_fill_manual(values = custom_colors)+
   theme_minimal() +
   theme(legend.position = "none",
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
         axis.text.x = element_text(size = 12),
         axis.text.y = element_text(size = 12),
-        axis.title = element_text(size = 14),
-        plot.title = element_text(size = 16, face = "bold"))
+        axis.title = element_text(size = 14, face = "bold"),
+        axis.text = element_text(size = 12),
+        plot.title = element_text(size = 16, face = "bold"))+
+  scale_x_continuous(breaks = c(0, 50, 100))
 
-#ggplot2::ggsave ("plots/Partial_mortality_ridge.jpeg", width = 5, height = 5, units = 'in')
+ggplot2::ggsave ("paper/Partial_mortality_ridge2.pdf", width = 5, height = 5, units = 'in')
 
 ######################################
 #barplot of PM by size class and year#
 ######################################
 
 #correct order
-summary_stats_size$TAIL_BINS <- factor(mean_PM_per_year_all$TAIL_BINS, 
+mean_PM_per_year_all$TAIL_BINS <- factor(mean_PM_per_year_all$TAIL_BINS, 
                                        levels = c("Q20", "QMED", "Q80"))
 
-ggplot(summary_stats_size %>% filter(!is.na(TAIL_BINS)), 
-       aes(x = as.factor(YEAR), y = Mean_PM, fill = as.factor(YEAR))) +
-  geom_col(alpha = 1) +  
-  geom_errorbar(aes(
-    ymin = pmax(0, CI_Lower),  
-    ymax = CI_Upper
-  ), width = 0.2) +theme_minimal() +
+ggplot(mean_PM_per_year_all %>% filter(!is.na(TAIL_BINS)), 
+       aes(x = as.factor(YEAR), y = mean_PM, fill = as.factor(YEAR))) +
+  geom_col(alpha = 1) +
+  geom_errorbar(
+    aes(
+      ymin = mean_PM - sd_PM,
+      ymax = mean_PM + sd_PM
+    ),
+                 height = 0.2, color = "black") +
+  # geom_errorbar(aes(
+  #   ymin = pmax(0, lower_CI),  
+  #   ymax = upper_CI
+  # ), width = 0.2) +theme_minimal() +
   theme(
     panel.border = element_rect(color = "grey", fill = NA, size = 1)
   ) +
   labs(
     x = "Survey Year",
-    y = "Mean percent partial mortality (%)",
+    y = "Mean partial mortality (%)",
     fill="Year"
   ) +
   facet_wrap(~TAIL_BINS, labeller = labeller(TAIL_BINS = facet_labels)) +  
   scale_fill_manual(values = custom_colors)+
   theme_minimal() +
   theme(
-    legend.position = "none", 
-    axis.text.x = element_text(size = 8, angle = 45, hjust = 0.7),
-    axis.text.y = element_text(size = 10),
-    axis.title = element_text(size = 12),
+    legend.position = "none",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(size = 10),
+    axis.text.x = element_text(size = 10, angle = 45, hjust = 0.7),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 14, face = "bold"),
     panel.border = element_rect(color = "grey", fill = NA, size = 1)
   )
-#ggplot2::ggsave ("plots/Partial_mortaltiy_boxplot_by_size_class.jpeg", width = 5, height = 5, units = 'in')
+ggplot2::ggsave ("paper/Partial_mortaltiy_barplot_by_size_class_sd.png", width = 5, height = 5, units = 'in')
 
 

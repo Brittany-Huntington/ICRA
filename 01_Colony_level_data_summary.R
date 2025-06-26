@@ -22,6 +22,7 @@ load(file = "data/ICRA_SIZE_PM_SOUTH_sizefiltered.RData") #south data from all y
 load(file = "data/ICRA_2025_SIZE_PM_nofeb.RData") #average march 2025 data without large colonies. 
 
 
+
 # set colors
 vir_colors <- viridis(n = 4, option = "C")
 print(vir_colors)

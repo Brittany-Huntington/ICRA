@@ -14,13 +14,17 @@ library(tidyverse)
 
 #exploring if spatial variation in SST mean and duration correlates w PM
 #adding adjusitng based on PALS (y * (n - 1) + 0.5) / n to the COLONIES 
-sep<-load("paper/merged2025_eds_PM_S_colony.Rdata")
-july<-load("paper/merged2025_eds_PM_S_colony6m.Rdata")
+load("paper/merged2025_eds_PM_S_colony.Rdata")
+load("paper/merged2025_eds_PM_S_colony6m.Rdata")
 
-colnames(merged2025_eds_PM_S_colony)
-n <- nrow(merged2025_eds_PM_S_colony)
+sep<-merged2025_eds_PM_S_colony
+july<-merged2025_eds_PM_S_colony6m
+
+
+colnames(merged2025_eds_PM_S_colony6m)
+n <- nrow(merged2025_eds_PM_S_colony6m)
 #adjust 0s fo beta regression before averaging, then take mean PM, convert to proportion.
-site<-merged2025_eds_PM_S_colony%>%
+site<-merged2025_eds_PM_S_colony6m%>%
   mutate(
     PER_DEAD_TRUE = (PER_DEAD * (n - 1) + 0.5) / n)%>%                       
   group_by(SITE, TAIL_BINS)%>%
