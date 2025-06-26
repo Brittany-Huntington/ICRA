@@ -14,8 +14,8 @@ library(tidyverse)
 
 #exploring if spatial variation in SST mean and duration correlates w PM
 #adding adjusitng based on PALS (y * (n - 1) + 0.5) / n to the COLONIES 
-
-load("paper/merged2025_eds_PM_S_colony6m.Rdata")
+sep<-load("paper/merged2025_eds_PM_S_colony.Rdata")
+july<-load("paper/merged2025_eds_PM_S_colony6m.Rdata")
 
 colnames(merged2025_eds_PM_S_colony)
 n <- nrow(merged2025_eds_PM_S_colony)
@@ -58,7 +58,7 @@ sim_res <- simulateResiduals(fittedModel = model, plot = TRUE)
 #no significant deviations or problems detected
 hist(sim_res$scaledResiduals, main = "Histogram of Scaled Residuals", xlab = "Residuals")
 
-plotResiduals(sim_res, site2$SST_Mean)
+plotResiduals(sim_res, site$SST_Mean)
 #plotResiduals(sim_res, site2$SST_range)
 
 testUniformity(sim_res)     # Are residuals uniformly distributed?
@@ -69,7 +69,7 @@ testOutliers(sim_res)       # Are there extreme values?
 #ns
 
 #plot resudials by site
-plotResiduals(sim_res, site2$SITE)
+plotResiduals(sim_res, site$SITE)
 #ns
 
 ################

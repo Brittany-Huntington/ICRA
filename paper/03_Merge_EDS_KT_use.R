@@ -43,11 +43,11 @@ range(year_eds$SST_Mean)
 range(year_eds$SST_range)
 
 #next is merging variables of interest back with PM colony data
-merged2025_eds_PM_S_colony<-sub_eds%>%
+merged2025_eds_PM_S_colony6m<-sub_eds%>%
   left_join(south_ICRA_survey_data, by = "SITE")%>%
   filter(!is.na(PER_DEAD))
-write.csv(merged2025_eds_PM_S_colony, file ="merged2025_eds_PM_S_colony6m.csv") 
-save(merged2025_eds_PM_S_colony, file="paper/merged2025_eds_PM_S_colony6m.Rdata")
+write.csv(merged2025_eds_PM_S_colony6m, file ="merged2025_eds_PM_S_colony6m.csv") 
+save(merged2025_eds_PM_S_colony6m, file="paper/merged2025_eds_PM_S_colony6m.Rdata")
 
 #check if SST mean and range are not correlated
 sub_numeric <- sub_eds %>%
