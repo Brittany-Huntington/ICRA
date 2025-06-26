@@ -15,7 +15,7 @@ library(tidyverse)
 #exploring if spatial variation in SST mean and duration correlates w PM
 #adding adjusitng based on PALS (y * (n - 1) + 0.5) / n to the COLONIES 
 
-load("paper/merged2025_eds_PM_S_colony.Rdata")
+load("paper/merged2025_eds_PM_S_colony6m.Rdata")
 
 colnames(merged2025_eds_PM_S_colony)
 n <- nrow(merged2025_eds_PM_S_colony)
@@ -35,6 +35,8 @@ site<-merged2025_eds_PM_S_colony%>%
     .groups = "drop")
 
 range(site$prop_mean_PM)
+range(site$SST_Mean)
+range(site$SST_range)
 
 hist(site$prop_mean_PM, breaks = 30)
 
