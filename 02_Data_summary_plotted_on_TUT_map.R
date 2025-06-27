@@ -21,6 +21,7 @@ load("data/filtered_south_colony_data.RData")
 load("data/ICRA_PM_site2025.RData")
 
 s_check<-read.csv("merged2025_PM_S_site.csv")
+load("data/ICRA_PM_SIZE_USE.Rdata")
 
 
 tutuila_shape <- st_read("data/Tut_shapefiles/TUT.shp") #make sure folder has all shapefiles needed
