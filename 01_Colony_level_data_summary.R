@@ -33,6 +33,7 @@ custom_colors[4] <- "gold"  # DAA520 goldenrod
 
 #Data summaries
 
+
 #how many corals were sized (Feb 2025 data size wasn't taken)
 summary_by_year_and_total_south_all <- s %>%
   group_by(Data_Source, YEAR) %>%
@@ -65,6 +66,10 @@ summary_by_year_and_totalPM_all <- ALL_ICRA_SIZE_PM %>%
   group_by(Data_Source, YEAR, TAIL_BINS) %>%
   summarise(non_na_count = sum(!is.na(PER_DEAD)),
             na_count = sum(is.na(PER_DEAD)) )
+
+summary_by_year_site <- ALL_ICRA_SIZE_PM %>%
+  group_by(YEAR) %>%
+  summarise(num_sites = n_distinct(SITE))
 
 #how many corals were measured PM by year and size class: NA = feb 2025 data
 summary_by_year_and_totalPM_south <- ICRA_SIZE_PM %>%

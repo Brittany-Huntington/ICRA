@@ -233,4 +233,43 @@ ggplot(mean_PM_per_year_all %>% filter(!is.na(TAIL_BINS)),
   )
 ggplot2::ggsave ("paper/Partial_mortaltiy_barplot_by_size_class_sd.png", width = 5, height = 5, units = 'in')
 
+########################
+#barplot of PM by  year#
+########################
+
+ggplot(mean_PM_per_year_south,
+       aes(x = as.factor(YEAR), y = mean_PM, fill = as.factor(YEAR))) +
+  geom_col(alpha = 1) +
+  # geom_errorbar(
+  #   aes(
+  #     ymin = mean_PM - sd_PM,
+  #     ymax = mean_PM + sd_PM
+  #   ),
+  #   height = 0.2, color = "black") +
+  geom_errorbar(aes(
+    ymin = pmax(0, lower_CI),
+    ymax = upper_CI
+  ), width = 0.2) +theme_minimal() +
+  theme(
+    panel.border = element_rect(color = "grey", fill = NA, size = 1)
+  ) +
+  labs(
+    x = "Survey Year",
+    y = "Mean partial mortality (%)",
+    fill="Year"
+  ) +
+  scale_fill_manual(values = custom_colors)+
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(size = 10),
+    axis.text.x = element_text(size = 10, angle = 45, hjust = 0.7),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 14, face = "bold"),
+    panel.border = element_rect(color = "grey", fill = NA, size = 1)
+  )
+ggplot2::ggsave ("paper/Partial_mortality_barplot_year_CI.png", width = 5, height = 5, units = 'in')
+
 

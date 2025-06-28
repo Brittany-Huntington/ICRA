@@ -72,7 +72,7 @@ ggplot() +
 #ggplot2::ggsave ("plots/Map_Partial_mortaltiy_2025.jpeg", width = 10, height = 5, units = 'in')
 
 # plot density
-#assign coordinates for PM data. Want to keep PM=0 but not NA
+#assign coordinates for density data. Want to keep PM=0 but not NA
 colnames(SOUTH_COLONY_DENSITY_filtered)
 sites_density_south <- SOUTH_COLONY_DENSITY_filtered %>%
   mutate(LATITUDE = LATITUDE.x,
@@ -244,4 +244,46 @@ ggplot() +
 ggplot2::ggsave ("plots/south_Site_map_by_year_nofeb.png", width = 5, height = 2.5, units = 'in',  bg = "transparent")
 
 
+i<-read.csv("All_ICRA_Site_Counts.csv")
 
+summary_by_year_site <- i %>%
+  group_by(YEAR) %>%
+  summarise(num_sites = n_distinct(SITE))
+
+sites_sf_density_all <- i %>%
+  distinct(LATITUDE, LONGITUDE, YEAR, .keep_all = TRUE) %>%  # keep all columns
+  st_as_sf(coords = c("LONGITUDE", "LATITUDE"), crs = 4326)  # WGS84 
+
+ggplot() +
+  geom_sf(data = tutuila_shape, fill = "grey", color = "black") +
+  
+  # First draw all years except 2025 (background layers)
+  geom_sf(data = subset(sites_sf_density_all),
+          aes(fill = as.factor(YEAR), shape = as.factor(YEAR)),
+          size = 1.5, stroke = 0.5, alpha = 0.8, color = "black") +
+  
+  scale_shape_manual(values = c("2015" = 22, "2018" = 23, "2023" = 24, "2025" = 21)) +
+  scale_fill_manual(
+    values = c("2015" = custom_colors[1],
+               "2018" = custom_colors[2],
+               "2023" = custom_colors[3],
+               "2025" = custom_colors[4])
+  ) +
+  labs(
+    x = "Longitude", y = "Latitude",
+    fill = "Year",
+    shape = "Year"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 5, angle = 90, hjust = 0),
+    axis.text.y = element_text(size = 5),
+    axis.title = element_text(size = 8),
+    text = element_text(size = 6),
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "top",
+    legend.key.size = unit(0.4, "cm"),
+    legend.box = "horizontal",
+    legend.text = element_text(size = 5),
+    legend.title = element_text(size = 5)
+  )

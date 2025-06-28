@@ -207,3 +207,5 @@ ggplot() +
   scale_color_manual(values = colors) +
   scale_fill_manual(values = colors)
 )
+
+ggsave("paper/regression.png")

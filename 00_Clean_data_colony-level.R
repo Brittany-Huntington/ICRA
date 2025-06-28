@@ -99,6 +99,10 @@ ALL_ICRA_SIZE_PM <- rbind(
   )
 ALL_ICRA_SIZE_PM$YEAR <- ordered(ALL_ICRA_SIZE_PM$YEAR, levels = c("2015", "2018", "2023", "2025"))
 
+summary_by_year_site <- ALL_ICRA_SIZE_PM %>%
+  group_by(YEAR) %>%
+  summarise(num_sites = n_distinct(SITE))
+
 ICRA_2025_unfiltered<-ALL_ICRA_SIZE_PM%>%
   filter(YEAR=="2025")
 

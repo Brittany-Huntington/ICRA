@@ -37,6 +37,10 @@ summary_by_year_and_total_all <- ALL_COLONY_DENSITY %>%
     .groups = "drop"
   ) 
 
+summary_by_year_site <- ALL_COLONY_DENSITY %>%
+  group_by(YEAR) %>%
+  summarise(num_sites = n_distinct(SITE))
+
 #YEAR  non_na_count na_count zeros
 #1 2015            57        0    42 #15 where density >0
 #2 2018            17        0    15 #only @ 2 sites in 2018 where density was > 0
