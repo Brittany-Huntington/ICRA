@@ -13,7 +13,8 @@ select = dplyr::select
 rename  = dplyr::rename
 
 #load("data/eds_output.Rdata")
-load("eds_output_Sep12025.Rdata")
+#load("eds_output_Sep12025.Rdata")
+load("eds_output_Sep12025_UPDATEDJPL.Rdata")
 load(file ="data/ICRA_PM_SIZE_USE.Rdata")
 
 #subset 2025 (can later add this to clean-colony level script)
@@ -46,8 +47,8 @@ range(year_eds$SST_range)
 merged2025_eds_PM_S_colony6m<-sub_eds%>%
   left_join(south_ICRA_survey_data, by = "SITE")%>%
   filter(!is.na(PER_DEAD))
-write.csv(merged2025_eds_PM_S_colony6m, file ="merged2025_eds_PM_S_colony6m.csv") 
-save(merged2025_eds_PM_S_colony6m, file="paper/merged2025_eds_PM_S_colony6m.Rdata")
+write.csv(merged2025_eds_PM_S_colony6m, file ="merged2025_eds_PM_S_colony6mUPDATEDJPL.csv") 
+save(merged2025_eds_PM_S_colony6m, file="paper/merged2025_eds_PM_S_colony6mUPDATEDJPL.Rdata")
 
 #check if SST mean and range are not correlated
 sub_numeric <- sub_eds %>%
