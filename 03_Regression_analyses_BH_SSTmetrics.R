@@ -25,7 +25,7 @@ setwd("C:/github/ICRA/data")
 
 #load 2025 coral data 
 icra<- read_csv("south_only_ICRA_Colony_level_data.csv")%>% mutate_if(is.character,as.factor) %>%
-  filter(YEAR == "2025", !is.na(PER_DEAD))%>% droplevels()
+  filter(YEAR == "2025", !is.na(PER_DEAD), !is.na(TAIL_BINS))%>% droplevels()
 
 plotNormalHistogram(icra$PER_DEAD) #potentially use >10% as a cutoff to look at prevalence of "severe partial mortality.
 
@@ -36,11 +36,12 @@ icra$PER_DEAD.adj <- (icra$PER_DEAD * (n - 1) + 0.5) / n
 range(icra$PER_DEAD.adj)
 
 ####CREATE RESPONSE VARIABLES @ SITE LEVEL (site level means per size class)--------------
-rv_size <- icra %>% filter(!is.na(TAIL_BINS)) %>%
+rv_size <- icra %>% 
   group_by(SITE, TAIL_BINS) %>%
-  summarise(mean_PM = mean(PER_DEAD.adj, na.rm = TRUE), .groups = "drop")
+  summarise(mean_PM = mean(PER_DEAD.adj, na.rm = TRUE), .groups = "drop")%>%
+  mutate(mean_PM = mean_PM/100)
 
-
+range(rv_size$mean_PM)
 
 
 ####EXPLORE OTHER DRIVER VARIABLES (MAX HEAT AND VARITATION)-----------------
