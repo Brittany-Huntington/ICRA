@@ -95,9 +95,13 @@ MuMIn::AICc(glm.1, glm.1a, glm.1b, glm.1c, glm.1d)
 
 #comparing one final check
 glm.2 <- glmmTMB(mean_PM ~ DHW_Mean * TAIL_BINS + DHW_Dur * TAIL_BINS + SST_mean * TAIL_BINS, data = rv_size, family = beta_family(link = "logit") )
+<<<<<<< HEAD
 AIC(glm.1c, glm.2) #glm.1c still best model
 
 summary(glm.1c)
+=======
+AIC(glm.1c, glm.2) #very similar
+>>>>>>> 1b5a5060339de6fd48878fdb585623927c6ee9fc
 
 
 #Checking Model Diagnostics for final model
