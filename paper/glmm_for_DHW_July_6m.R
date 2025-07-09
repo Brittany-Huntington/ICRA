@@ -43,19 +43,19 @@ eds_MO06 <- eds %>%
 
 eds_MO06 <- eds_MO06 %>%
   select(SITE,
-         DHW_Mean = DHW.MeanMax_Degree_Heating_Weeks_jplMUR_Daily_MO06,
-         DHW_MeanMax_Major = DHW.MeanMax_Major_Degree_Heating_Weeks_jplMUR_Daily_MO06,
-         DHW_Dur = DHW.MeanDur_Degree_Heating_Weeks_jplMUR_Daily_MO06,
-         DHW_Dur_Major = DHW.MeanDur_Major_Degree_Heating_Weeks_jplMUR_Daily_MO06,
-         DHW_Max_Major = DHW.MaxMax_Major_Degree_Heating_Weeks_jplMUR_Daily_MO06,
-         DHW_Max_Major5 = DHW.MaxMax_Major_Degree_Heating_Weeks_jplMUR_Daily_MO06,
+         # DHW_Mean = DHW.MeanMax_Degree_Heating_Weeks_jplMUR_Daily_MO06,
+         # DHW_MeanMax_Major = DHW.MeanMax_Major_Degree_Heating_Weeks_jplMUR_Daily_MO06,
+         # DHW_Dur = DHW.MeanDur_Degree_Heating_Weeks_jplMUR_Daily_MO06,
+         # DHW_Dur_Major = DHW.MeanDur_Major_Degree_Heating_Weeks_jplMUR_Daily_MO06,
+         # DHW_Max_Major = DHW.MaxMax_Major_Degree_Heating_Weeks_jplMUR_Daily_MO06,
+         # DHW_Max_Major5 = DHW.MaxMax_Major_Degree_Heating_Weeks_jplMUR_Daily_MO06,
          SST_AnnRange = mean_annual_range_Sea_Surface_Temperature_jplMUR_Daily_MO06,
-         SST_MonthRange = mean_monthly_range_Sea_Surface_Temperature_jplMUR_Daily_MO06,
-         SST_Mean = mean_Sea_Surface_Temperature_jplMUR_Daily_MO06,
-         SST_Q05 = q05_Sea_Surface_Temperature_jplMUR_Daily_MO06,
-         SST_Q95 = q95_Sea_Surface_Temperature_jplMUR_Daily_MO06,
-         SST_SD = sd_Sea_Surface_Temperature_jplMUR_Daily_MO06,
-         SST_BiweekRange = mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_MO06)
+         #SST_MonthRange = mean_monthly_range_Sea_Surface_Temperature_jplMUR_Daily_MO06,
+         SST_Mean = mean_Sea_Surface_Temperature_jplMUR_Daily_MO06)
+         #SST_Q05 = q05_Sea_Surface_Temperature_jplMUR_Daily_MO06,
+         #SST_Q95 = q95_Sea_Surface_Temperature_jplMUR_Daily_MO06,
+         #SST_SD = sd_Sea_Surface_Temperature_jplMUR_Daily_MO06,
+        # SST_BiweekRange = mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_MO06)
          
 #   select(-any_of(c("DHW.YearsToLast_Degree_Heating_Weeks_jplMUR_Daily_MO06", 
 #                    "DHW.YearsToLast_Major_Degree_Heating_Weeks_jplMUR_Daily_MO06", 
@@ -64,7 +64,7 @@ eds_MO06 <- eds_MO06 %>%
 #                    "DHW.Np10y_Degree_Heating_Weeks_jplMUR_Daily_MO06",             
 #                    "DHW.Np10y_Major_Degree_Heating_Weeks_jplMUR_Daily_MO06")
 # ))
-save(eds_MO06, file = "eds_MO06_JPL_updated_DHW.Rdata")
+#save(eds_MO06, file = "eds_MO06_JPL_updated_DHW.Rdata")
 
 ######
 merged2025_eds_PM_S_colony6m_DHW_all<-eds_MO06%>%
@@ -108,16 +108,19 @@ dev.off()
 #subset variables you want to use:
 sub_eds <- eds_MO06 %>%
   select(SITE,
-         # SST_range = mean_biweekly_range_Sea_Surface_Temperature_jplMUR_Daily_MO06,
-         # SST_Mean = mean_Sea_Surface_Temperature_jplMUR_Daily_MO06
-         DHW_Dur,
-         DHW_Mean
+         SST_AnnRange,
+         SST_Mean
+         #DHW_Dur,
+         #DHW_Mean
   )
 
 # range(sub_eds$SST_Mean)
 # range(sub_eds$SST_range)
-range(sub_eds$DHW_Dur)
-range(sub_eds$DHW_Mean)
+range(sub_eds$SST_AnnRange)
+range(sub_eds$SST_Mean)
+
+range(eds_MO06$SST_AnnRange)
+range(eds_MO06$SST_Mean)
 
 #next is merging variables of interest back with PM colony data
 merged2025_eds_PM_S_colony6m_DHW<-sub_eds%>%
@@ -140,7 +143,7 @@ M <- cor(sub_numeric_matrix, use = "pairwise.complete.obs") #pearsons
 res1 <- cor.mtest(sub_numeric_matrix, conf.level = 0.95)
 corrplot(M, p.mat = res1$p, 
          sig.level = 0.05, 
-         #insig = "p-value", # if you want to print nonsig pvalues
+         insig = "p-value", # if you want to print nonsig pvalues
          order = 'hclust', 
          addrect = 2, 
          tl.srt = 45, 
@@ -164,20 +167,20 @@ site<-merged2025_eds_PM_S_colony6m_DHW%>%
     n = n(),
     mean_PM = mean(PER_DEAD_TRUE, na.rm = TRUE),
     prop_mean_PM = mean_PM / 100,
-    DHW_Mean = first(DHW_Mean),
-    DHW_Dur = first(DHW_Dur),
+    SST_Mean = first(SST_Mean),
+    SST_ = first(SST_AnnRange),
     Latitude= first(LATITUDE),
     LONGITUDE = first(LONGITUDE),
     .groups = "drop")
 
 range(site$prop_mean_PM)
-range(site$DHW_Mean)
-range(site$DHW_Dur)
+range(site$SST_Mean)
+range(site$SST_AnnRange)
 
 hist(site$prop_mean_PM, breaks = 30)
 
 model<- glmmTMB(
-  prop_mean_PM ~ (DHW_Mean * TAIL_BINS) + (DHW_Dur * TAIL_BINS),
+  prop_mean_PM ~ (SST_Mean * TAIL_BINS) + (SST_AnnRange * TAIL_BINS),
   data = site,
   family = beta_family()
 )
