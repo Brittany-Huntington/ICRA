@@ -206,6 +206,6 @@ ggplot() +
   xlab(expression(bold("SST Mean ("*~degree*C*")"))) +
   scale_color_manual(values = colors) +
   scale_fill_manual(values = colors)
-)
+
 
 ggsave("paper/regression.png")
