@@ -8,6 +8,7 @@ library(corrplot)
 library(car)
 library(broom)
 library(MuMIn)
+library(emmeans)
 if(!require(betareg)){install.packages("betareg")}
 if(!require(clusterSim)){install.packages("clusterSim")} #data.Normalization function; centering and scaling data
 if(!require(lmtest)){install.packages("lmtest")}
@@ -103,25 +104,36 @@ glm.1b <- glmmTMB(mean_PM ~ SST_mean * TAIL_BINS + DHW_dur * TAIL_BINS + SST_ran
 glm.1c <- glmmTMB(mean_PM ~ SST_mean * TAIL_BINS, data = rv_size, family = beta_family(link = "logit")) #single factor models of just intensity
 glm.1d <- glmmTMB(mean_PM ~ DHW_mean * TAIL_BINS, data = rv_size, family = beta_family(link = "logit")) #single factor models of just intensity
 
-#model fit using AIC corrected for small sample sizes
-MuMIn::AICc(glm.1, glm.1a, glm.1b, glm.1c, glm.1d)
-
-summary(glm.1)
+ 
+# Create a model selection table, using AIC corrected for small sample sizes
+model.sel(glm.1, glm.1a, glm.1b, glm.1c, glm.1d, rank = "AICc")
 summary(glm.1c) #favored model based on AICc
+performance::r2(glm.1c) #Ferrari & Cribari-Neto’s pseudo R^2
 
 
 #Checking Model Diagnostics
 sim_res <- simulateResiduals(fittedModel = glm.1c, plot = TRUE)
 testResiduals(sim_res)                 # Global tests
 testDispersion(sim_res)               # Overdispersion
-testZeroInflation(sim_res)            # Zero inflation
+testOutliers(sim_res)                 # test outliers
+testUniformity(sim_res)               # test uniformity of the residuals
+
 plotResiduals(sim_res, rv_size$SST_mean)  # Residuals vs predictor
+plotResiduals(sim_res, predict(glm.1c, type = "response")) ##catch issues in model fit not explained by SST_mean alone
 
 plot(predict(glm.1, type = "response"), rv_size$mean_PM,
      xlab = "Predicted mean_PM", ylab = "Observed mean_PM")
 abline(0, 1, col = "red")
 
-#check_collinearity(glm.1c)
+
+
+# Get trends (slopes) of SST_mean for each TAIL_BINS level
+trends <- emtrends(glm.1c, specs = "TAIL_BINS", var = "SST_mean")
+summary(trends, infer = c(TRUE, TRUE))
+
+#test whether the slope differences between bins are significant
+pairs(trends)
+
 
 
 ####PARTIAL REGRESSION PLOTS--------------
