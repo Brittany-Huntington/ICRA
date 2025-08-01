@@ -115,9 +115,12 @@ performance::r2(glm.1c) #Ferrari & Cribari-Neto’s pseudo R^2
 sim_res <- simulateResiduals(fittedModel = glm.1c, plot = TRUE)
 testResiduals(sim_res)                 # Global tests
 testDispersion(sim_res)               # Overdispersion
+<<<<<<< HEAD
 testOutliers(sim_res)                 # test outliers
 testUniformity(sim_res)               # test uniformity of the residuals
 
+=======
+>>>>>>> 1df8c2a2c9641a64e91129d34ba13370e3d54fa1
 plotResiduals(sim_res, rv_size$SST_mean)  # Residuals vs predictor
 plotResiduals(sim_res, predict(glm.1c, type = "response")) ##catch issues in model fit not explained by SST_mean alone
 
